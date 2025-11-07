@@ -48,31 +48,12 @@ categories = list(data_map.keys())
 def get_recommendations(data, keywords):
     if data is None or len(data) == 0 or keywords.strip() == "":
         return pd.DataFrame()
-        # Define irrelevant columns per dataset
-irrelevant_columns = {
-    "Books": ["ID"],
-    "Movies": ["ID", "Budget", "Revenue"],
-    "Songs": ["ID"],
-    "Clothes": ["Gender", "Size", "Stock"],   # only exclude non-name fields
-    "Food": ["Gender", "Marital_Status"],     # exclude irrelevant
-    "Products": ["Gender", "Marital_Status"]  # exclude irrelevant
-}
 
-# Automatic display column selection
-exclude_cols = irrelevant_columns.get(category, [])
-obj_cols = [c for c in results.select_dtypes(include='object').columns if c not in exclude_cols]
-display_col = obj_cols[0] if obj_cols else results.columns[0]
-
-
-    # Exclude irrelevant columns for all datasets
-    exclude_cols = ["Gender", "Marital_Status", "ID", "Price", 
-        "Occupation", "Status", "Age", "Email", "Phone" ]
-    text_cols = [c for c in data.columns if data[c].dtype == 'object' and c not in exclude_cols]
-
+    # Combine all object columns as text for TF-IDF
+    text_cols = [c for c in data.columns if data[c].dtype == 'object']
     if not text_cols:
         return pd.DataFrame()
 
-    # Combine text for TF-IDF
     data["combined_text"] = data[text_cols].fillna("").astype(str).agg(" ".join, axis=1)
 
     # TF-IDF vectorization
@@ -81,13 +62,13 @@ display_col = obj_cols[0] if obj_cols else results.columns[0]
     query_vec = tfidf.transform([keywords])
     cosine_sim = cosine_similarity(query_vec, matrix).flatten()
 
-    # Get top 5 matches
+    # Top 5 results
     top_indices = cosine_sim.argsort()[-5:][::-1]
     top_scores = cosine_sim[top_indices]
 
     results = pd.DataFrame([data.iloc[idx] for idx, score in zip(top_indices, top_scores) if score > 0.01])
 
-    # Fallback: random selection
+    # Fallback random
     if results.empty:
         results = data.sample(min(5, len(data)))
 
@@ -105,11 +86,18 @@ if st.button("🔍 Recommend"):
         if not results.empty:
             st.success("✅ Top Recommendations for you!")
 
-            # Automatic display column selection
-            exclude_cols = [
-                "Gender", "Marital_Status", "ID", "Price", 
-                "Occupation", "Status", "Age", "Email", "Phone"
-            ]
+            # ---------- PER-CATEGORY EXCLUDE COLUMNS ----------
+            irrelevant_columns = {
+                "Books": ["ID"],
+                "Movies": ["ID", "Budget", "Revenue"],
+                "Songs": ["ID"],
+                "Clothes": ["Gender", "Size", "Stock"],
+                "Food": ["Gender", "Marital_Status"],
+                "Products": ["Gender", "Marital_Status"]
+            }
+            exclude_cols = irrelevant_columns.get(category, [])
+
+            # Pick first object column not in excluded list as display column
             obj_cols = [c for c in results.select_dtypes(include='object').columns if c not in exclude_cols]
             display_col = obj_cols[0] if obj_cols else results.columns[0]
 
@@ -119,7 +107,4 @@ if st.button("🔍 Recommend"):
         else:
             st.warning("😔 No results found. Try a different keyword!")
 
-st.markdown('<div class="footer">Developed with ❤️ using Streamlit</div>', unsafe_allow_html=True)
-
-
-
+st.markdown('<div class="footer">Developed with ❤️ using Streamlit by Debritu Bose</div>', unsafe_allow_html=True)
