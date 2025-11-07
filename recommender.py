@@ -3,70 +3,66 @@ import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
-# --- RESET STREAMLIT STATE ---
-for key in st.session_state.keys():
-    del st.session_state[key]
+# ---------- PAGE CONFIG ----------
+st.set_page_config(page_title="Basic Recommender System", layout="centered")
 
-# ---- PAGE CONFIG ----
-st.set_page_config(page_title="AI Recommender", page_icon="🤖", layout="wide")
-
-# ---- PAGE STYLE ----
-st.markdown("""
+# ---------- STYLING ----------
+st.markdown(
+    """
     <style>
     body {
-        background: linear-gradient(120deg, #d4fc79, #96e6a1);
+        background-color: #f0f4f8;
+        color: #333333;
     }
     .main {
-        background: rgba(255,255,255,0.7);
-        padding: 30px;
-        border-radius: 20px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        background-color: #ffffff;
+        border-radius: 12px;
+        padding: 25px;
+        box-shadow: 0 0 12px rgba(0, 0, 0, 0.1);
     }
-    h1 {
-        text-align:center;
-        color:#1a1a1a;
-        font-weight:700;
-        margin-bottom:0;
+    .title {
+        text-align: center;
+        color: #0078ff;
+        font-size: 32px;
+        font-weight: 700;
+        margin-bottom: 10px;
     }
-    h3 {
-        text-align:center;
-        color:#444;
-    }
-    .stTextInput input {
-        border-radius: 10px;
+    .footer {
+        text-align: center;
+        font-size: 13px;
+        margin-top: 40px;
+        color: #777;
     }
     </style>
-""", unsafe_allow_html=True)
+    """,
+    unsafe_allow_html=True
+)
 
-# ---- HEADER ----
-st.markdown("<h1>🤖 Basic Recommender System</h1>", unsafe_allow_html=True)
-st.markdown("<h3>Find books, movies, or songs similar to your choice 🎯</h3>", unsafe_allow_html=True)
-st.markdown("---")
+# ---------- PAGE HEADER ----------
+st.markdown('<div class="title">✨ Basic Recommender System ✨</div>', unsafe_allow_html=True)
+st.write("Search across **Books**, **Movies**, and **Songs** to find items similar to your interest!")
 
-# ---- LOAD DATA ----
+# ---------- LOAD DATA ----------
 @st.cache_data
 def load_data():
-    books = pd.read_csv("books_small.csv")
-    movies = pd.read_csv("movies_small.csv")
-    songs = pd.read_csv("Spotify_small.csv")
-    electronics = pd.read_csv("electronics_small.csv")
-    foods = pd.read_csv("foods_small.csv")
-    clothes = pd.read_csv("clothes_small.csv")
-    return books, movies, songs, electronics, foods, clothes
+    try:
+        books = pd.read_csv("books.csv", low_memory=False)
+        movies = pd.read_csv("tmdb_5000_movies.csv", low_memory=False)
+        songs = pd.read_csv("SpotifyFeatures.csv", low_memory=False)
+        return books, movies, songs
+    except Exception as e:
+        st.error(f"Error loading data: {e}")
+        return None, None, None
 
-try:
-    books, movies, songs, electronics, foods, clothes = load_data()
-except Exception as e:
-    st.error("⚠️ Error loading one or more CSV files. Please check that all dataset files exist.")
-    st.stop()
+books, movies, songs = load_data()
 
-# ---- FUNCTION: RECOMMENDATION ----
+# ---------- IMPROVED RECOMMENDER FUNCTION ----------
 def get_recommendations(data, keywords, category):
     """Return top 5 recommendations using TF-IDF cosine similarity."""
-    if keywords.strip() == "":
+    if data is None or len(data) == 0 or keywords.strip() == "":
         return []
 
-    # Choose columns based on category
+    # Choose text columns based on category
     if category == "Songs":
         text_cols = ['track_name', 'artist_name', 'genre']
     elif category == "Movies":
@@ -74,77 +70,63 @@ def get_recommendations(data, keywords, category):
     elif category == "Books":
         text_cols = ['Name', 'Book-Title', 'Author', 'Description']
     else:
-        # fallback to any object columns
         text_cols = [c for c in data.columns if data[c].dtype == 'object']
 
-    # Merge text columns safely
+    # Add missing columns
     for col in text_cols:
         if col not in data.columns:
             data[col] = ""
 
+    # Combine text from multiple columns
     data["combined_text"] = data[text_cols].fillna("").astype(str).agg(" ".join, axis=1)
 
+    # TF-IDF Vectorization
     tfidf = TfidfVectorizer(stop_words='english')
     matrix = tfidf.fit_transform(data["combined_text"])
 
-    cosine_sim = cosine_similarity(tfidf.transform([keywords]), matrix)
-    scores = list(enumerate(cosine_sim[0]))
-    scores = sorted(scores, key=lambda x: x[1], reverse=True)
-    top_items = [data.iloc[i[0]] for i in scores[:5] if i[1] > 0]
-    return top_items
+    # Compute similarity with query
+    query_vec = tfidf.transform([keywords])
+    cosine_sim = cosine_similarity(query_vec, matrix).flatten()
 
-# ---- UI INPUTS ----
-col1, col2 = st.columns([3, 1])
-with col1:
-    keywords = st.text_input(
-    "🔍 Enter keyword (e.g., *Shape of You*, *Harry Potter*, *Action Movie*):",
-    key="keyword_box_" + str(hash(pd.Timestamp.now()))
-)
+    # Get top matches
+    top_indices = cosine_sim.argsort()[-5:][::-1]
+    top_scores = cosine_sim[top_indices]
 
+    # Filter out weak matches
+    results = []
+    for idx, score in zip(top_indices, top_scores):
+        if score > 0.01:
+            results.append(data.iloc[idx])
 
-with col2:
-    category = st.selectbox("📂 Choose Category", ["Books", "Movies", "Songs", "Electronics", "Foods", "Clothes"])
+    # Fallback: random if nothing matches
+    if len(results) == 0:
+        results = data.sample(min(5, len(data)))
 
-# ---- BUTTON ----
-if st.button("✨ Get Recommendations"):
-    if category == "Books":
-        results = get_recommendations(books, keywords, category)
-    elif category == "Movies":
-        results = get_recommendations(movies, keywords, category)
-    elif category == "Songs":
-        results = get_recommendations(songs, keywords, category)
-    elif category == "Electronics":
+    return results
 
+# ---------- APP INTERFACE ----------
+category = st.radio("Select Category:", ["Books", "Movies", "Songs"])
+keywords = st.text_input("Enter keywords (e.g., romance, thriller, dance, love):")
 
-        results = get_recommendations(electronics, keywords, category)
-    elif category == "Foods":
-        results = get_recommendations(foods, keywords, category)
-    elif category == "Clothes":
-        results = get_recommendations(clothes, keywords, category)
-    else:
-        results = []
+if st.button("🔍 Recommend"):
+    with st.spinner("Finding recommendations..."):
+        if category == "Books":
+            data = books
+        elif category == "Movies":
+            data = movies
+        elif category == "Songs":
+            data = songs
+        else:
+            data = None
 
-    if len(results) > 0:
-        st.success(f"✅ Found {len(results)} matching recommendations!")
-        for _, item in enumerate(results):
-            st.markdown(f"""
-            <div style='background-color:#f1f5f9;padding:15px;border-radius:15px;margin-bottom:10px;'>
-                <strong>{item.get('track_name', item.get('title', item.get('Name', 'Unnamed Item')))}</strong><br>
-                <em>{item.get('artist_name', item.get('Author', ''))}</em><br>
-                <span style='color:#555;'>{item.get('genre', item.get('genres', ''))}</span>
-            </div>
-            """, unsafe_allow_html=True)
-    else:
-        st.warning("😔 No perfect match found. Try another keyword!")
+        results = get_recommendations(data, keywords, category)
 
-# ---- FOOTER ----
-st.markdown("---")
-st.markdown(
-    "<p style='text-align:center;color:#666;'>Made with ❤️ using Streamlit | Debritu Bose</p>",
-    unsafe_allow_html=True
-)
+        if len(results) > 0:
+            st.success("✅ Top Recommendations for you!")
+            for i, row in enumerate(results, 1):
+                st.markdown(f"**{i}.** {row.iloc[0]}")
+        else:
+            st.warning("😔 No results found. Try a different keyword!")
 
-
-
-
-
+# ---------- FOOTER ----------
+st.markdown('<div class="footer">Developed with ❤️ using Streamlit</div>', unsafe_allow_html=True)
