@@ -37,7 +37,12 @@ if not data.empty:
     st.dataframe(data.head(5))
 
     # --- Take user input ---
-    user_input = st.text_input(f"Enter keywords for {option} recommendation:")
+    user_input = st.text_input(
+    f"Enter keywords for {option} recommendation:",
+    key=f"input_{option}",
+    autocomplete="off"
+)
+
 
     if st.button("🔍 Get Recommendations"):
         # --- Convert columns to string and search ---
@@ -51,3 +56,4 @@ if not data.empty:
             st.error("❌ No perfect match found. Try a different keyword.")
 else:
     st.error(f"No data loaded for {option}. Please check if the CSV file exists.")
+
