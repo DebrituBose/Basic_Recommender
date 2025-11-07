@@ -4,7 +4,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
 # ---------- PAGE CONFIG ----------
-st.set_page_config(page_title="Basic Recommender System", layout="centered")
+st.set_page_config(page_title="basic Recommender System", layout="centered")
 
 # ---------- STYLING ----------
 st.markdown("""
@@ -31,7 +31,7 @@ def load_data():
         datasets['Food'] = pd.read_csv("foods_small.csv", low_memory=False)
         datasets['Products'] = pd.read_csv("electronics_small.csv", low_memory=False)
 
-        # Clean column names: strip spaces, replace spaces & hyphens with underscores
+        # Clean column names
         for key in datasets:
             df = datasets[key]
             df.columns = [c.strip().replace(" ", "_").replace("-", "_") for c in df.columns]
@@ -49,7 +49,7 @@ def get_recommendations(data, keywords):
     if data is None or len(data) == 0 or keywords.strip() == "":
         return pd.DataFrame()
 
-    # Combine all object columns as text for TF-IDF
+    # Combine all object columns
     text_cols = [c for c in data.columns if data[c].dtype == 'object']
     if not text_cols:
         return pd.DataFrame()
@@ -68,11 +68,20 @@ def get_recommendations(data, keywords):
 
     results = pd.DataFrame([data.iloc[idx] for idx, score in zip(top_indices, top_scores) if score > 0.01])
 
-    # Fallback random
     if results.empty:
         results = data.sample(min(5, len(data)))
 
     return results
+
+# ---------- DISPLAY FIELDS PER CATEGORY ----------
+display_fields = {
+    "Books": ["Name", "Author", "Description"],
+    "Movies": ["title", "genres", "overview"],
+    "Songs": ["track_name", "artist_name", "genre"],
+    "Clothes": ["Name", "Category", "Brand"],
+    "Food": ["Name", "Category", "Price"],
+    "Products": ["Name", "Category", "Price"]
+}
 
 # ---------- APP INTERFACE ----------
 category = st.selectbox("Select Category:", categories)
@@ -86,24 +95,11 @@ if st.button("🔍 Recommend"):
         if not results.empty:
             st.success("✅ Top Recommendations for you!")
 
-            # ---------- PER-CATEGORY EXCLUDE COLUMNS ----------
-            irrelevant_columns = {
-                "Books": ["ID"],
-                "Movies": ["ID", "Budget", "Revenue"],
-                "Songs": ["ID"],
-                "Clothes": ["Gender", "Size", "Stock"],
-                "Food": ["Gender", "Marital_Status"],
-                "Products": ["Gender", "Marital_Status"]
-            }
-            exclude_cols = irrelevant_columns.get(category, [])
-
-            # Pick first object column not in excluded list as display column
-            obj_cols = [c for c in results.select_dtypes(include='object').columns if c not in exclude_cols]
-            display_col = obj_cols[0] if obj_cols else results.columns[0]
+            fields_to_show = display_fields.get(category, results.columns[:3].tolist())
 
             for i, row in results.iterrows():
-                value = row.get(display_col, "N/A")
-                st.markdown(f"**{i+1}.** {value}")
+                display_text = " | ".join([f"**{f}:** {row.get(f, 'N/A')}" for f in fields_to_show])
+                st.markdown(f"**{i+1}.** {display_text}")
         else:
             st.warning("😔 No results found. Try a different keyword!")
 
