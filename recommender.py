@@ -39,8 +39,8 @@ st.markdown(
 )
 
 # ---------- PAGE HEADER ----------
-st.markdown('<div class="title">✨ Basic Recommender System ✨</div>', unsafe_allow_html=True)
-st.write("Search across **Books**, **Movies**, **Songs**, **Clothes**, and **Food** to find items similar to your interest!")
+st.markdown('<div class="title">✨ Universal Recommender System ✨</div>', unsafe_allow_html=True)
+st.write("Search across **Books**,**Products**, **Movies**, **Songs**, **Clothes**, and **Food** to find items similar to your interest!")
 
 # ---------- LOAD DATA ----------
 @st.cache_data
@@ -48,6 +48,7 @@ def load_data():
     datasets = {}
     try:
         datasets['Books'] = pd.read_csv("books_small.csv", low_memory=False)
+        datasets['Products'] = pd.read_csv("electronics_small.csv", low_memory=False)
         datasets['Movies'] = pd.read_csv("movies_small.csv", low_memory=False)
         datasets['Songs'] = pd.read_csv("Spotify_small.csv", low_memory=False)
         datasets['Clothes'] = pd.read_csv("clothes_small.csv", low_memory=False)  # add your clothes dataset
@@ -63,10 +64,12 @@ categories = list(data_map.keys())
 # ---------- DISPLAY COLUMNS PER CATEGORY ----------
 display_columns = {
     "Books": "Name",
+    "Products":"Name",
     "Movies": "title",
     "Songs": "track_name",
     "Clothes": "Name",
     "Food": "Name"
+    
 }
 
 # ---------- RECOMMENDER FUNCTION ----------
@@ -119,16 +122,16 @@ if st.button("🔍 Recommend"):
 
         if len(results) > 0:
             st.success("✅ Top Recommendations for you!")
-            
+
             # Use predefined display column
             display_col = display_columns.get(category, results.select_dtypes(include='object').columns[0])
 
-            for i, row in enumerate(results.itertuples(), 1):
-                st.markdown(f"**{i}.** {getattr(row, display_col)}")
+            for i, row in enumerate(results.itertuples(index=False), 1):
+                row_dict = row._asdict()  # convert namedtuple to dict
+                value = row_dict.get(display_col, "N/A")  # fallback if column missing
+                st.markdown(f"**{i}.** {value}")
         else:
             st.warning("😔 No results found. Try a different keyword!")
 
 # ---------- FOOTER ----------
 st.markdown('<div class="footer">Developed with ❤️ using Streamlit by Debritu Bose</div>', unsafe_allow_html=True)
-
-
