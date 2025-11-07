@@ -1,5 +1,3 @@
-import os
-import subprocess
 import streamlit as st
 import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -60,11 +58,28 @@ def load_data():
         food.columns = food.columns.str.strip().str.lower()
         if 'name' in food.columns and 'restaurant' in food.columns:
             food = food[food['name'].notna() & food['restaurant'].notna()]
-            for col in ['name','restaurant','category','description']:
+            for col in ['name','restaurant','category','description','price']:
                 if col in food.columns:
-                    food[col] = food[col].astype(str).str.strip()
+                    food[col] = food[col].astype(str).str.strip().str.lower()
         else:
             st.error("Food CSV must have columns 'Name' and 'Restaurant' (any case)!")
+
+    # Clean other datasets to lowercase strings for TF-IDF
+    def clean_text(df, columns):
+        if df.empty:
+            return df
+        df.columns = df.columns.str.strip().str.lower()
+        for col in columns:
+            if col in df.columns:
+                df[col] = df[col].astype(str).str.strip().str.lower()
+        return df
+
+    clothes = clean_text(clothes, ['name','brand','category','description','price'])
+    products = clean_text(products, ['name','brand','category','description','price'])
+    movies = clean_text(movies, ['title','genres','overview'])
+    songs = clean_text(songs, ['track_name','artist_name','genre'])
+    books = clean_text(books, ['name','book-title','author','description'])
+
     return food, clothes, products, movies, songs, books
 
 food, clothes, products, movies, songs, books = load_data()
@@ -74,26 +89,28 @@ def get_recommendations(data, keywords, category):
     if data is None or data.empty or keywords.strip() == "":
         return []
 
-    if category == "Food":
-        text_cols = ['name','restaurant','category','description']
-    elif category == "Clothes":
-        text_cols = ['Name','Brand','Category','Description']
-    elif category == "Products":
-        text_cols = ['Name','Brand','Category','Description']
-    elif category == "Movies":
-        text_cols = ['title','genres','overview']
-    elif category == "Songs":
-        text_cols = ['track_name','artist_name','genre']
-    elif category == "Books":
-        text_cols = ['Name','Book-Title','Author','Description']
-    else:
-        text_cols = [c for c in data.columns if data[c].dtype == 'object']
+    # Define columns for each category
+    text_cols_dict = {
+        "Food": ['name','restaurant','category','description'],
+        "Clothes": ['name','brand','category','description'],
+        "Products": ['name','brand','category','description'],
+        "Movies": ['title','genres','overview'],
+        "Songs": ['track_name','artist_name','genre'],
+        "Books": ['name','book-title','author','description']
+    }
+
+    text_cols = text_cols_dict.get(category, [c for c in data.columns if data[c].dtype=='object'])
 
     for col in text_cols:
         if col not in data.columns:
             data[col] = ""
 
-    data["combined_text"] = data[text_cols].fillna("").astype(str).agg(" ".join, axis=1)
+    data["combined_text"] = data[text_cols].fillna("").astype(str).agg(" ".join, axis=1).str.lower()
+    keywords = keywords.lower()
+
+    # Debug: show sample combined text
+    # st.write("Sample combined text:", data["combined_text"].head())
+
     tfidf = TfidfVectorizer(stop_words='english')
     matrix = tfidf.fit_transform(data["combined_text"])
     query_vec = tfidf.transform([keywords])
@@ -119,27 +136,26 @@ keywords = st.text_input("Enter keywords (e.g., biryani, jeans, laptop, action, 
 
 if st.button("🔍 Recommend"):
     with st.spinner("Finding recommendations..."):
-        if category == "Food":
-            data = food
-            display_cols = ['name','restaurant','category','price','description']
-        elif category == "Clothes":
-            data = clothes
-            display_cols = ['Name','Brand','Category','Price','Description']
-        elif category == "Products":
-            data = products
-            display_cols = ['Name','Brand','Category','Price','Description']
-        elif category == "Movies":
-            data = movies
-            display_cols = ['title','genres','overview']
-        elif category == "Songs":
-            data = songs
-            display_cols = ['track_name','artist_name','genre']
-        elif category == "Books":
-            data = books
-            display_cols = ['Name','Book-Title','Author','Description']
-        else:
-            data = None
-            display_cols = []
+        display_cols_dict = {
+            "Food": ['name','restaurant','category','price','description'],
+            "Clothes": ['name','brand','category','price','description'],
+            "Products": ['name','brand','category','price','description'],
+            "Movies": ['title','genres','overview'],
+            "Songs": ['track_name','artist_name','genre'],
+            "Books": ['name','book-title','author','description']
+        }
+
+        data_dict = {
+            "Food": food,
+            "Clothes": clothes,
+            "Products": products,
+            "Movies": movies,
+            "Songs": songs,
+            "Books": books
+        }
+
+        data = data_dict.get(category, pd.DataFrame())
+        display_cols = display_cols_dict.get(category, [])
 
         results = get_recommendations(data, keywords, category)
 
@@ -152,4 +168,3 @@ if st.button("🔍 Recommend"):
             st.warning("😔 No results found. Try a different keyword!")
 
 st.markdown('<div class="footer">Developed with ❤️ using Streamlit</div>', unsafe_allow_html=True)
-
