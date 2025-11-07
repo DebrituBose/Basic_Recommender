@@ -71,7 +71,7 @@ categories = list(data_map.keys())
 # ---------- DISPLAY COLUMNS PER CATEGORY (after cleaning) ----------
 display_columns = {
     "Books": "Name",
-    "Products": "Name',
+    "Products": "Name",
     "Movies": "title",
     "Songs": "track_name",
     "Clothes": "Name",
@@ -136,3 +136,4 @@ if st.button("🔍 Recommend"):
 
 # ---------- FOOTER ----------
 st.markdown('<div class="footer">Developed with ❤️ using Streamlit by Debritu Bose</div>', unsafe_allow_html=True)
+
