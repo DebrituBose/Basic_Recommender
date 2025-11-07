@@ -48,8 +48,7 @@ def load_data():
     datasets = {}
     try:
         datasets['Books'] = pd.read_csv("books_small.csv", low_memory=False)
-        datasets['Movies'] = pd.read_csv("movie
-        s.csv", low_memory=False)
+        datasets['Movies'] = pd.read_csv("movies.csv", low_memory=False)
         datasets['Songs'] = pd.read_csv("Spotify_small.csv", low_memory=False)
         datasets['Clothes'] = pd.read_csv("clothes_small.csv", low_memory=False)  # add your clothes dataset
         datasets['Food'] = pd.read_csv("foods_small.csv", low_memory=False)        # add your food dataset
@@ -131,3 +130,4 @@ if st.button("🔍 Recommend"):
 
 # ---------- FOOTER ----------
 st.markdown('<div class="footer">Developed with ❤️ using Streamlit by Debritu Bose</div>', unsafe_allow_html=True)
+
