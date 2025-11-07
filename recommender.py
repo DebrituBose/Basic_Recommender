@@ -33,7 +33,7 @@ def read_file(file_path):
 
 @st.cache_data
 def load_data():
-    food = read_file("food.csv")
+    food = read_file("foods.csv")
     clothes = read_file("clothes.csv")
     products = read_file("products.csv")
     movies = read_file("movie.csv")
@@ -141,3 +141,4 @@ if st.button("🔍 Recommend"):
 
 # ---------- FOOTER ----------
 st.markdown('<div class="footer">Developed with ❤️ using Streamlit by Debritu Bose</div>', unsafe_allow_html=True)
+
