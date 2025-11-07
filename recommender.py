@@ -4,7 +4,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
 # ---------- PAGE CONFIG ----------
-st.set_page_config(page_title="Basic Recommender System", layout="centered")
+st.set_page_config(page_title="Universal Recommender System", layout="centered")
 
 # ---------- STYLING ----------
 st.markdown(
@@ -40,42 +40,36 @@ st.markdown(
 
 # ---------- PAGE HEADER ----------
 st.markdown('<div class="title">✨ Basic Recommender System ✨</div>', unsafe_allow_html=True)
-st.write("Search across **Books**, **Movies**, and **Songs** to find items similar to your interest!")
+st.write("Search across **Books**, **Movies**, **Songs**, **Clothes**, and **Food** to find items similar to your interest!")
 
 # ---------- LOAD DATA ----------
 @st.cache_data
 def load_data():
+    datasets = {}
     try:
-        books = pd.read_csv("books.csv", low_memory=False)
-        movies = pd.read_csv("tmdb_5000_movies.csv", low_memory=False)
-        songs = pd.read_csv("SpotifyFeatures.csv", low_memory=False)
-        return books, movies, songs
+        datasets['Books'] = pd.read_csv("books_small.csv", low_memory=False)
+        datasets['Movies'] = pd.read_csv("movies_small.csv", low_memory=False)
+        datasets['Songs'] = pd.read_csv("Spotify_small.csv", low_memory=False)
+        datasets['Clothes'] = pd.read_csv("clothes_small.csv", low_memory=False)  # add your clothes dataset
+        datasets['Food'] = pd.read_csv("foods_small.csv", low_memory=False)        # add your food dataset
+        return datasets
     except Exception as e:
         st.error(f"Error loading data: {e}")
-        return None, None, None
+        return {}
 
-books, movies, songs = load_data()
+data_map = load_data()
+categories = list(data_map.keys())
 
-# ---------- IMPROVED RECOMMENDER FUNCTION ----------
-def get_recommendations(data, keywords, category):
+# ---------- RECOMMENDER FUNCTION ----------
+def get_recommendations(data, keywords):
     """Return top 5 recommendations using TF-IDF cosine similarity."""
     if data is None or len(data) == 0 or keywords.strip() == "":
         return []
 
-    # Choose text columns based on category
-    if category == "Songs":
-        text_cols = ['track_name', 'artist_name', 'genre']
-    elif category == "Movies":
-        text_cols = ['title', 'genres', 'overview']
-    elif category == "Books":
-        text_cols = ['Name', 'Book-Title', 'Author', 'Description']
-    else:
-        text_cols = [c for c in data.columns if data[c].dtype == 'object']
-
-    # Add missing columns
-    for col in text_cols:
-        if col not in data.columns:
-            data[col] = ""
+    # Use all text columns dynamically
+    text_cols = [c for c in data.columns if data[c].dtype == 'object']
+    if not text_cols:
+        return []
 
     # Combine text from multiple columns
     data["combined_text"] = data[text_cols].fillna("").astype(str).agg(" ".join, axis=1)
@@ -92,10 +86,9 @@ def get_recommendations(data, keywords, category):
     top_indices = cosine_sim.argsort()[-5:][::-1]
     top_scores = cosine_sim[top_indices]
 
-    # Filter out weak matches
     results = []
     for idx, score in zip(top_indices, top_scores):
-        if score > 0.01:
+        if score > 0.01:  # filter weak matches
             results.append(data.iloc[idx])
 
     # Fallback: random if nothing matches
@@ -105,28 +98,25 @@ def get_recommendations(data, keywords, category):
     return results
 
 # ---------- APP INTERFACE ----------
-category = st.radio("Select Category:", ["Books", "Movies", "Songs"])
-keywords = st.text_input("Enter keywords (e.g., romance, thriller, dance, love):")
+category = st.selectbox("Select Category:", categories)
+keywords = st.text_input("Enter keywords (e.g., romance, thriller, dance, love, shirt, biryani):")
 
 if st.button("🔍 Recommend"):
     with st.spinner("Finding recommendations..."):
-        if category == "Books":
-            data = books
-        elif category == "Movies":
-            data = movies
-        elif category == "Songs":
-            data = songs
-        else:
-            data = None
-
-        results = get_recommendations(data, keywords, category)
+        data = data_map.get(category, None)
+        results = get_recommendations(data, keywords)
 
         if len(results) > 0:
             st.success("✅ Top Recommendations for you!")
-            for i, row in enumerate(results, 1):
-                st.markdown(f"**{i}.** {row.iloc[0]}")
+            
+            # Dynamically pick a display column
+            string_cols = results.select_dtypes(include='object').columns
+            display_col = string_cols[0] if len(string_cols) > 0 else results.columns[0]
+
+            for i, row in enumerate(results.itertuples(), 1):
+                st.markdown(f"**{i}.** {getattr(row, display_col)}")
         else:
             st.warning("😔 No results found. Try a different keyword!")
 
 # ---------- FOOTER ----------
-st.markdown('<div class="footer">Developed with ❤️ using Streamlit</div>', unsafe_allow_html=True)
+st.markdown('<div class="footer">Developed with ❤️ using Streamlit by Debritu Bose</div>', unsafe_allow_html=True)
