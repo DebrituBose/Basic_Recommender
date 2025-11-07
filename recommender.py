@@ -50,13 +50,21 @@ def get_recommendations(data, keywords):
         return pd.DataFrame()
 
     # Exclude non-content columns
-    exclude_cols = ["Gender", "ID", "Price"]
-    text_cols = [c for c in data.columns if data[c].dtype == 'object' and c not in exclude_cols]
+   exclude_cols = ["Gender", "Marital_Status", "ID", "Price"]
+text_cols = [c for c in data.columns if data[c].dtype == 'object' and c not in exclude_cols]
 
     if not text_cols:
         return pd.DataFrame()
+        display_columns = {
+    "Books": "Name",
+    "Movies": "title",
+    "Songs": "track_name",
+    "Clothes": "Name",
+    "Food": "Name"  # column that actually has the food item
+}
 
-    data["combined_text"] = data[text_cols].fillna("").astype(str).agg(" ".join, axis=1)
+
+   data["combined_text"] = data[text_cols].fillna("").astype(str).agg(" ".join, axis=1)
 
     tfidf = TfidfVectorizer(stop_words='english')
     matrix = tfidf.fit_transform(data["combined_text"])
@@ -98,3 +106,4 @@ if st.button("🔍 Recommend"):
             st.warning("😔 No results found. Try a different keyword!")
 
 st.markdown('<div class="footer">Developed with ❤️ using Streamlit by Debritu Bose</div>', unsafe_allow_html=True)
+
