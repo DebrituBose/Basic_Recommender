@@ -46,7 +46,7 @@ books_file = st.sidebar.file_uploader("Upload Books CSV/XLSX", type=["csv","xlsx
 
 @st.cache_data
 def load_data():
-    # Make sure variable names match the uploader variables
+    # ✅ Correct variable names
     food = read_file(foods_file)
     clothes = read_file(clothes_file)
     products = read_file(products_file)
@@ -65,7 +65,6 @@ def load_data():
                     food[col] = food[col].astype(str).str.strip()
         else:
             st.error("Food CSV must have columns 'Name' and 'Restaurant' (any case)!")
-
     return food, clothes, products, movies, songs, books
 
 food, clothes, products, movies, songs, books = load_data()
@@ -75,7 +74,6 @@ def get_recommendations(data, keywords, category):
     if data is None or data.empty or keywords.strip() == "":
         return []
 
-    # select text columns for similarity
     if category == "Food":
         text_cols = ['name','restaurant','category','description']
     elif category == "Clothes":
@@ -96,7 +94,6 @@ def get_recommendations(data, keywords, category):
             data[col] = ""
 
     data["combined_text"] = data[text_cols].fillna("").astype(str).agg(" ".join, axis=1)
-
     tfidf = TfidfVectorizer(stop_words='english')
     matrix = tfidf.fit_transform(data["combined_text"])
     query_vec = tfidf.transform([keywords])
