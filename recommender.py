@@ -46,6 +46,7 @@ books_file = st.sidebar.file_uploader("Upload Books CSV/XLSX", type=["csv","xlsx
 
 @st.cache_data
 def load_data():
+    # Make sure variable names match the uploader variables
     food = read_file(foods_file)
     clothes = read_file(clothes_file)
     products = read_file(products_file)
