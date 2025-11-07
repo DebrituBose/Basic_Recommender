@@ -92,7 +92,11 @@ def get_recommendations(data, keywords, category):
 # ---- UI INPUTS ----
 col1, col2 = st.columns([3, 1])
 with col1:
-    keywords = st.text_input("🔍 Enter keyword (e.g., *Shape of You*, *Harry Potter*, *Action Movie*):")
+    keywords = st.text_input(
+    "🔍 Enter keyword (e.g., *Shape of You*, *Harry Potter*, *Action Movie*):",
+    key="keyword_input",  # forces Streamlit to treat it as new field
+)
+
 with col2:
     category = st.selectbox("📂 Choose Category", ["Books", "Movies", "Songs", "Electronics", "Foods", "Clothes"])
 
@@ -105,6 +109,8 @@ if st.button("✨ Get Recommendations"):
     elif category == "Songs":
         results = get_recommendations(songs, keywords, category)
     elif category == "Electronics":
+)
+
         results = get_recommendations(electronics, keywords, category)
     elif category == "Foods":
         results = get_recommendations(foods, keywords, category)
@@ -132,3 +138,4 @@ st.markdown(
     "<p style='text-align:center;color:#666;'>Made with ❤️ using Streamlit | Debritu Bose</p>",
     unsafe_allow_html=True
 )
+
