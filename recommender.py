@@ -1,8 +1,16 @@
-pip install openpyxl
+import os
+import subprocess
 import streamlit as st
 import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
+
+# ---------- INSTALL OPENPYXL ----------
+try:
+    import openpyxl
+except ImportError:
+    subprocess.run(["pip", "install", "openpyxl"])
+    import openpyxl
 
 # ---------- PAGE CONFIG ----------
 st.set_page_config(page_title="Universal Recommender System", layout="centered")
@@ -47,7 +55,6 @@ books_file = st.sidebar.file_uploader("Upload Books CSV/XLSX", type=["csv","xlsx
 
 @st.cache_data
 def load_data():
-    # ✅ Correct variable names
     food = read_file(food_file)
     clothes = read_file(clothes_file)
     products = read_file(products_file)
@@ -58,7 +65,6 @@ def load_data():
     # ---------- CLEAN FOOD DATA ----------
     if not food.empty:
         food.columns = food.columns.str.strip().str.lower()
-        st.write("Food CSV Columns Detected:", food.columns.tolist())
         if 'name' in food.columns and 'restaurant' in food.columns:
             food = food[food['name'].notna() & food['restaurant'].notna()]
             for col in ['name','restaurant','category','description']:
@@ -153,5 +159,3 @@ if st.button("🔍 Recommend"):
             st.warning("😔 No results found. Try a different keyword!")
 
 st.markdown('<div class="footer">Developed with ❤️ using Streamlit</div>', unsafe_allow_html=True)
-
-
