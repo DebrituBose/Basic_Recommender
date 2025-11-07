@@ -4,7 +4,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
 # ---------- PAGE CONFIG ----------
-st.set_page_config(page_title="basic Recommender System", layout="centered")
+st.set_page_config(page_title="Smart Recommender System", layout="centered")
 
 # ---------- STYLING ----------
 st.markdown("""
@@ -16,7 +16,7 @@ body {background-color: #f0f4f8; color: #333333;}
 </style>
 """, unsafe_allow_html=True)
 
-st.markdown('<div class="title">✨ Basic Recommender System ✨</div>', unsafe_allow_html=True)
+st.markdown('<div class="title">✨ Smart Recommender System ✨</div>', unsafe_allow_html=True)
 st.write("Search across **Books, Movies, Songs, Clothes, Food, Products** to find items similar to your interest!")
 
 # ---------- LOAD DATA ----------
@@ -31,7 +31,7 @@ def load_data():
         datasets['Food'] = pd.read_csv("foods_small.csv", low_memory=False)
         datasets['Products'] = pd.read_csv("electronics_small.csv", low_memory=False)
 
-        # Clean column names
+        # Clean column names: strip spaces, replace spaces & hyphens with underscores
         for key in datasets:
             df = datasets[key]
             df.columns = [c.strip().replace(" ", "_").replace("-", "_") for c in df.columns]
@@ -73,16 +73,6 @@ def get_recommendations(data, keywords):
 
     return results
 
-# ---------- DISPLAY FIELDS PER CATEGORY ----------
-display_fields = {
-    "Books": ["Name", "Author", "Description"],
-    "Movies": ["title", "genres", "overview"],
-    "Songs": ["track_name", "artist_name", "genre"],
-    "Clothes": ["Name", "Category", "Brand"],
-    "Food": ["Name", "Category", "Price"],
-    "Products": ["Name", "Category", "Price"]
-}
-
 # ---------- APP INTERFACE ----------
 category = st.selectbox("Select Category:", categories)
 keywords = st.text_input("Enter keywords (e.g., romance, thriller, dance, love, shirt, biryani, laptop):")
@@ -95,12 +85,15 @@ if st.button("🔍 Recommend"):
         if not results.empty:
             st.success("✅ Top Recommendations for you!")
 
-            fields_to_show = display_fields.get(category, results.columns[:3].tolist())
+            # ---------- AUTO-DETECT DISPLAY COLUMNS ----------
+            # Pick first 3 non-empty object columns
+            obj_cols = [c for c in results.select_dtypes(include='object') if results[c].notna().sum() > 0]
+            fields_to_show = obj_cols[:3] if obj_cols else results.columns[:3]
 
             for i, row in results.iterrows():
-                display_text = " | ".join([f"**{f}:** {row.get(f, 'N/A')}" for f in fields_to_show])
+                display_text = " | ".join([f"**{f}:** {row.get(f, 'Unknown')}" for f in fields_to_show])
                 st.markdown(f"**{i+1}.** {display_text}")
         else:
             st.warning("😔 No results found. Try a different keyword!")
 
-st.markdown('<div class="footer">Developed with ❤️ using Streamlit by Debritu Bose</div>', unsafe_allow_html=True)
+st.markdown('<div class="footer">Developed with ❤️ using Streamlit</div>', unsafe_allow_html=True)
