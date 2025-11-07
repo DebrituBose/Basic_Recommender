@@ -31,7 +31,7 @@ def load_data():
         datasets['Clothes'] = pd.read_csv("clothes_small.csv", low_memory=False)
         datasets['Food'] = pd.read_csv("foods_small.csv", low_memory=False)
 
-        # Clean column names: strip spaces, replace spaces & hyphens with underscores
+        # Clean column names: strip spaces and replace spaces & hyphens with underscores
         for key in datasets:
             df = datasets[key]
             df.columns = [c.strip().replace(" ", "_").replace("-", "_") for c in df.columns]
@@ -46,18 +46,17 @@ categories = list(data_map.keys())
 
 # ---------- RECOMMENDER FUNCTION ----------
 def get_recommendations(data, keywords):
-    """Return top 5 recommendations using TF-IDF cosine similarity."""
     if data is None or len(data) == 0 or keywords.strip() == "":
         return pd.DataFrame()
 
-    # Exclude irrelevant columns
+    # Exclude irrelevant columns (Gender, Marital_Status, ID, Price)
     exclude_cols = ["Gender", "Marital_Status", "ID", "Price"]
     text_cols = [c for c in data.columns if data[c].dtype == 'object' and c not in exclude_cols]
 
     if not text_cols:
         return pd.DataFrame()
 
-    # Combine text columns
+    # Combine text for TF-IDF
     data["combined_text"] = data[text_cols].fillna("").astype(str).agg(" ".join, axis=1)
 
     # TF-IDF vectorization
@@ -70,15 +69,13 @@ def get_recommendations(data, keywords):
     top_indices = cosine_sim.argsort()[-5:][::-1]
     top_scores = cosine_sim[top_indices]
 
-    # Collect results as DataFrame
     results = pd.DataFrame([data.iloc[idx] for idx, score in zip(top_indices, top_scores) if score > 0.01])
 
-    # Fallback random selection
+    # Fallback: random selection
     if results.empty:
         results = data.sample(min(5, len(data)))
 
     return results
-
 
 # ---------- APP INTERFACE ----------
 category = st.selectbox("Select Category:", categories)
@@ -92,9 +89,8 @@ if st.button("🔍 Recommend"):
         if not results.empty:
             st.success("✅ Top Recommendations for you!")
 
-            # ---------- AUTOMATIC DISPLAY COLUMN ----------
-            # Pick the first object column that is not ID, Gender, or Price
-            exclude_cols = ["Gender", "ID", "Price"]
+            # Automatic display column selection: first object column not in exclude list
+            exclude_cols = ["Gender", "Marital_Status", "ID", "Price"]
             obj_cols = [c for c in results.select_dtypes(include='object').columns if c not in exclude_cols]
             display_col = obj_cols[0] if obj_cols else results.columns[0]
 
@@ -105,5 +101,3 @@ if st.button("🔍 Recommend"):
             st.warning("😔 No results found. Try a different keyword!")
 
 st.markdown('<div class="footer">Developed with ❤️ using Streamlit by Debritu Bose</div>', unsafe_allow_html=True)
-
-
