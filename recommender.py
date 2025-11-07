@@ -50,8 +50,8 @@ def load_data():
         datasets['Books'] = pd.read_csv("books_small.csv", low_memory=False)
         datasets['Movies'] = pd.read_csv("movies_small.csv", low_memory=False)
         datasets['Songs'] = pd.read_csv("Spotify_small.csv", low_memory=False)
-        datasets['Clothes'] = pd.read_csv("clothes_small.csv", low_memory=False)  # add your clothes dataset
-        datasets['Food'] = pd.read_csv("foods_small.csv", low_memory=False)        # add your food dataset
+        datasets['Clothes'] = pd.read_csv("clothes_small.csv", low_memory=False)  # your clothes dataset
+        datasets['Food'] = pd.read_csv("food_small.csv", low_memory=False)        # your food dataset
         return datasets
     except Exception as e:
         st.error(f"Error loading data: {e}")
@@ -62,12 +62,14 @@ categories = list(data_map.keys())
 
 # ---------- RECOMMENDER FUNCTION ----------
 def get_recommendations(data, keywords):
-    """Return top 5 recommendations using TF-IDF cosine similarity."""
+    """Return top 5 recommendations using TF-IDF cosine similarity, ignoring irrelevant columns."""
     if data is None or len(data) == 0 or keywords.strip() == "":
         return []
 
-    # Use all text columns dynamically
-    text_cols = [c for c in data.columns if data[c].dtype == 'object']
+    # Exclude non-content columns like Gender, ID, Price
+    exclude_cols = ["Gender", "ID", "Price"]  # customize per dataset
+    text_cols = [c for c in data.columns if data[c].dtype == 'object' and c not in exclude_cols]
+
     if not text_cols:
         return []
 
@@ -109,7 +111,7 @@ if st.button("🔍 Recommend"):
         if len(results) > 0:
             st.success("✅ Top Recommendations for you!")
             
-            # Dynamically pick a display column
+            # Dynamically pick a display column (first text column)
             string_cols = results.select_dtypes(include='object').columns
             display_col = string_cols[0] if len(string_cols) > 0 else results.columns[0]
 
