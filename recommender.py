@@ -48,10 +48,11 @@ def load_data():
     datasets = {}
     try:
         datasets['Books'] = pd.read_csv("books_small.csv", low_memory=False)
-        datasets['Movies'] = pd.read_csv("movies_small.csv", low_memory=False)
+        datasets['Movies'] = pd.read_csv("movie
+        s.csv", low_memory=False)
         datasets['Songs'] = pd.read_csv("Spotify_small.csv", low_memory=False)
-        datasets['Clothes'] = pd.read_csv("clothes_small.csv", low_memory=False)  # your clothes dataset
-        datasets['Food'] = pd.read_csv("foods_small.csv", low_memory=False)        # your food dataset
+        datasets['Clothes'] = pd.read_csv("clothes_small.csv", low_memory=False)  # add your clothes dataset
+        datasets['Food'] = pd.read_csv("foods_small.csv", low_memory=False)        # add your food dataset
         return datasets
     except Exception as e:
         st.error(f"Error loading data: {e}")
@@ -59,6 +60,15 @@ def load_data():
 
 data_map = load_data()
 categories = list(data_map.keys())
+
+# ---------- DISPLAY COLUMNS PER CATEGORY ----------
+display_columns = {
+    "Books": "Name",
+    "Movies": "title",
+    "Songs": "track_name",
+    "Clothes": "Name",
+    "Food": "Name"
+}
 
 # ---------- RECOMMENDER FUNCTION ----------
 def get_recommendations(data, keywords):
@@ -111,9 +121,8 @@ if st.button("🔍 Recommend"):
         if len(results) > 0:
             st.success("✅ Top Recommendations for you!")
             
-            # Dynamically pick a display column (first text column)
-            string_cols = results.select_dtypes(include='object').columns
-            display_col = string_cols[0] if len(string_cols) > 0 else results.columns[0]
+            # Use predefined display column
+            display_col = display_columns.get(category, results.select_dtypes(include='object').columns[0])
 
             for i, row in enumerate(results.itertuples(), 1):
                 st.markdown(f"**{i}.** {getattr(row, display_col)}")
@@ -122,4 +131,3 @@ if st.button("🔍 Recommend"):
 
 # ---------- FOOTER ----------
 st.markdown('<div class="footer">Developed with ❤️ using Streamlit by Debritu Bose</div>', unsafe_allow_html=True)
-
