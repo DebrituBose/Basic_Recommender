@@ -1,80 +1,53 @@
 import streamlit as st
 import pandas as pd
-import difflib
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
+import os
 
-# --------------------------
-# Step 1: Load all datasets
-# --------------------------
+st.title("🎯 AI/ML Multi-Domain Recommender System")
+st.write("Get personalized recommendations for Movies, Books, Songs, Electronics, Foods, and Clothes!")
+
+# --- Load datasets safely ---
 @st.cache_data
-def load_data():
-    books = pd.read_csv("books_small.csv", low_memory=False)
-    movies = pd.read_csv("movies_small.csv", low_memory=False)
-    songs = pd.read_csv("songs_small.csv", low_memory=False)
-    electronics = pd.read_csv("electronics_small.csv", low_memory=False)
-    foods = pd.read_csv("foods_small.csv", low_memory=False)
-    clothes = pd.read_csv("clothes_small.csv", low_memory=False)
-    return books, movies, songs, electronics, foods, clothes
+def load_data(filename):
+    if os.path.exists(filename):
+        return pd.read_csv(filename, low_memory=False)
+    else:
+        st.warning(f"⚠️ File not found: {filename}")
+        return pd.DataFrame()
 
-books, movies, songs, electronics, foods, clothes = load_data()
+datasets = {
+    "Movies": load_data("movies_small.csv"),
+    "Books": load_data("books_small.csv"),
+    "Songs": load_data("songs_small.csv"),
+    "Electronics": load_data("electronics_small.csv"),
+    "Foods": load_data("foods_small.csv"),
+    "Clothes": load_data("clothes_small.csv")
+}
 
-# --------------------------
-# Step 2: Create TF-IDF helper
-# --------------------------
-def build_similarity_matrix(df, text_column):
-    df[text_column] = df[text_column].fillna('')
-    tfidf = TfidfVectorizer(stop_words='english')
-    tfidf_matrix = tfidf.fit_transform(df[text_column])
-    similarity = cosine_similarity(tfidf_matrix)
-    return similarity
-
-# --------------------------
-# Step 3: General recommend function
-# --------------------------
-def get_recommendations(user_input, df, text_column, name):
-    titles = df[text_column].dropna().tolist()
-    close_matches = difflib.get_close_matches(user_input, titles, n=1, cutoff=0.2)
-    
-    if not close_matches:
-        st.warning(f"No close matches found in {name}. Try a different word.")
-        return
-    
-    matched_title = close_matches[0]
-    st.success(f"🔍 Showing {name} similar to: {matched_title}")
-    
-    try:
-        similarity = build_similarity_matrix(df, text_column)
-        index = df[df[text_column] == matched_title].index[0]
-        scores = list(enumerate(similarity[index]))
-        sorted_scores = sorted(scores, key=lambda x: x[1], reverse=True)[1:6]
-        for i, score in sorted_scores:
-            st.write(f"👉 {df[text_column].iloc[i]}")
-    except Exception as e:
-        st.warning(f"Couldn’t generate recommendations due to: {e}")
-
-# --------------------------
-# Step 4: Streamlit UI
-# --------------------------
-st.title("🎯 Multi-Domain AI Recommender System")
-
+# --- Choose category ---
 option = st.selectbox(
-    "Choose what you want recommendations for:",
-    ["Books", "Movies", "Songs", "Electronics", "Foods", "Clothes"]
+    "Select a category for recommendation:",
+    list(datasets.keys())
 )
 
-user_input = st.text_input("Enter a title, name, or keyword:")
+data = datasets[option]
 
-if st.button("Recommend"):
-    if option == "Books":
-        get_recommendations(user_input, books, 'title', 'Books')
-    elif option == "Movies":
-        get_recommendations(user_input, movies, 'title', 'Movies')
-    elif option == "Songs":
-        get_recommendations(user_input, songs, 'track_name', 'Songs')
-    elif option == "Electronics":
-        get_recommendations(user_input, electronics, 'title', 'Electronics')
-    elif option == "Foods":
-        get_recommendations(user_input, foods, 'Item_Name', 'Foods')
-    elif option == "Clothes":
-        get_recommendations(user_input, clothes, 'Item_Name', 'Clothes')
+if not data.empty:
+    # --- Show data preview ---
+    st.subheader(f"Sample {option} Data")
+    st.dataframe(data.head(5))
+
+    # --- Take user input ---
+    user_input = st.text_input(f"Enter keywords for {option} recommendation:")
+
+    if st.button("🔍 Get Recommendations"):
+        # --- Convert columns to string and search ---
+        matches = data.apply(lambda row: row.astype(str).str.contains(user_input, case=False, na=False)).any(axis=1)
+        results = data[matches]
+
+        if not results.empty:
+            st.success(f"✅ Found {len(results)} recommendations!")
+            st.dataframe(results.head(10))
+        else:
+            st.error("❌ No perfect match found. Try a different keyword.")
+else:
+    st.error(f"No data loaded for {option}. Please check if the CSV file exists.")
