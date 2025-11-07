@@ -5,13 +5,6 @@ import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
-# ---------- INSTALL OPENPYXL ----------
-try:
-    import openpyxl
-except ImportError:
-    subprocess.run(["pip", "install", "openpyxl"])
-    import openpyxl
-
 # ---------- PAGE CONFIG ----------
 st.set_page_config(page_title="Universal Recommender System", layout="centered")
 
@@ -159,3 +152,4 @@ if st.button("🔍 Recommend"):
             st.warning("😔 No results found. Try a different keyword!")
 
 st.markdown('<div class="footer">Developed with ❤️ using Streamlit</div>', unsafe_allow_html=True)
+
