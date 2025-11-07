@@ -16,7 +16,6 @@ body { background-color: #f0f4f8; color: #333333; }
 </style>
 """, unsafe_allow_html=True)
 
-# ---------- PAGE HEADER ----------
 st.markdown('<div class="title">✨ Universal Recommender System ✨</div>', unsafe_allow_html=True)
 st.write("Search across **Food**, **Clothes**, **Products**, **Movies**, **Songs**, and **Books**!")
 
@@ -43,7 +42,9 @@ def load_data():
     if not food.empty:
         # normalize column names: strip spaces and lowercase
         food.columns = food.columns.str.strip().str.lower()
-
+        
+        st.write("Food CSV Columns:", food.columns.tolist())  # <-- show columns in app
+        
         # check for required columns
         if 'name' in food.columns and 'restaurant' in food.columns:
             food = food[food['name'].notna() & food['restaurant'].notna()]
@@ -52,7 +53,7 @@ def load_data():
                     food[col] = food[col].astype(str).str.strip()
         else:
             st.error("Food CSV must have columns 'Name' and 'Restaurant' (any case)!")
-    
+
     return food, clothes, products, movies, songs, books
 
 food, clothes, products, movies, songs, books = load_data()
@@ -143,5 +144,4 @@ if st.button("🔍 Recommend"):
         else:
             st.warning("😔 No results found. Try a different keyword!")
 
-# ---------- FOOTER ----------
 st.markdown('<div class="footer">Developed with ❤️ using Streamlit</div>', unsafe_allow_html=True)
