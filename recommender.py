@@ -1,3 +1,4 @@
+pip install openpyxl
 import streamlit as st
 import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -152,4 +153,5 @@ if st.button("🔍 Recommend"):
             st.warning("😔 No results found. Try a different keyword!")
 
 st.markdown('<div class="footer">Developed with ❤️ using Streamlit</div>', unsafe_allow_html=True)
+
 
