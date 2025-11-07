@@ -33,12 +33,21 @@ def read_file(file_path):
 
 @st.cache_data
 def load_data():
-    food = read_file("foods.csv")
+    food = read_file("food.csv")
     clothes = read_file("clothes.csv")
     products = read_file("products.csv")
     movies = read_file("movie.csv")
     songs = read_file("Spotify_small.csv")
     books = read_file("books_small.csv")
+
+    # ---------- CLEAN FOOD DATA ----------
+    if not food.empty:
+        # Keep only rows with valid Name and Restaurant
+        food = food[food['Name'].notna() & food['Restaurant'].notna()]
+        # Strip whitespace from all relevant text columns
+        for col in ['Name', 'Restaurant', 'Category', 'Description']:
+            if col in food.columns:
+                food[col] = food[col].astype(str).str.strip()
     return food, clothes, products, movies, songs, books
 
 food, clothes, products, movies, songs, books = load_data()
@@ -132,4 +141,3 @@ if st.button("🔍 Recommend"):
 
 # ---------- FOOTER ----------
 st.markdown('<div class="footer">Developed with ❤️ using Streamlit by Debritu Bose</div>', unsafe_allow_html=True)
-
