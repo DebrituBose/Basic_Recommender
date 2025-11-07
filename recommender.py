@@ -46,40 +46,39 @@ categories = list(data_map.keys())
 
 # ---------- RECOMMENDER FUNCTION ----------
 def get_recommendations(data, keywords):
+    """Return top 5 recommendations using TF-IDF cosine similarity."""
     if data is None or len(data) == 0 or keywords.strip() == "":
         return pd.DataFrame()
 
-    # Exclude non-content columns
-   exclude_cols = ["Gender", "Marital_Status", "ID", "Price"]
-text_cols = [c for c in data.columns if data[c].dtype == 'object' and c not in exclude_cols]
+    # Exclude irrelevant columns
+    exclude_cols = ["Gender", "Marital_Status", "ID", "Price"]
+    text_cols = [c for c in data.columns if data[c].dtype == 'object' and c not in exclude_cols]
 
     if not text_cols:
         return pd.DataFrame()
-        display_columns = {
-    "Books": "Name",
-    "Movies": "title",
-    "Songs": "track_name",
-    "Clothes": "Name",
-    "Food": "Name"  # column that actually has the food item
-}
 
+    # Combine text columns
+    data["combined_text"] = data[text_cols].fillna("").astype(str).agg(" ".join, axis=1)
 
-   data["combined_text"] = data[text_cols].fillna("").astype(str).agg(" ".join, axis=1)
-
+    # TF-IDF vectorization
     tfidf = TfidfVectorizer(stop_words='english')
     matrix = tfidf.fit_transform(data["combined_text"])
     query_vec = tfidf.transform([keywords])
     cosine_sim = cosine_similarity(query_vec, matrix).flatten()
 
+    # Get top 5 matches
     top_indices = cosine_sim.argsort()[-5:][::-1]
     top_scores = cosine_sim[top_indices]
 
+    # Collect results as DataFrame
     results = pd.DataFrame([data.iloc[idx] for idx, score in zip(top_indices, top_scores) if score > 0.01])
 
+    # Fallback random selection
     if results.empty:
         results = data.sample(min(5, len(data)))
 
     return results
+
 
 # ---------- APP INTERFACE ----------
 category = st.selectbox("Select Category:", categories)
@@ -106,4 +105,5 @@ if st.button("🔍 Recommend"):
             st.warning("😔 No results found. Try a different keyword!")
 
 st.markdown('<div class="footer">Developed with ❤️ using Streamlit by Debritu Bose</div>', unsafe_allow_html=True)
+
 
