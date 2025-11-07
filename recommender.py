@@ -66,8 +66,7 @@ display_col = obj_cols[0] if obj_cols else results.columns[0]
 
     # Exclude irrelevant columns for all datasets
     exclude_cols = ["Gender", "Marital_Status", "ID", "Price", 
-        "Occupation", "Status", "Age", "Email", "Phone"
-    ]
+        "Occupation", "Status", "Age", "Email", "Phone" ]
     text_cols = [c for c in data.columns if data[c].dtype == 'object' and c not in exclude_cols]
 
     if not text_cols:
@@ -121,5 +120,6 @@ if st.button("🔍 Recommend"):
             st.warning("😔 No results found. Try a different keyword!")
 
 st.markdown('<div class="footer">Developed with ❤️ using Streamlit</div>', unsafe_allow_html=True)
+
 
 
