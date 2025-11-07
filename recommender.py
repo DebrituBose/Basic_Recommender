@@ -51,7 +51,7 @@ def load_data():
         datasets['Movies'] = pd.read_csv("movies_small.csv", low_memory=False)
         datasets['Songs'] = pd.read_csv("Spotify_small.csv", low_memory=False)
         datasets['Clothes'] = pd.read_csv("clothes_small.csv", low_memory=False)  # your clothes dataset
-        datasets['Food'] = pd.read_csv("food_small.csv", low_memory=False)        # your food dataset
+        datasets['Food'] = pd.read_csv("foods_small.csv", low_memory=False)        # your food dataset
         return datasets
     except Exception as e:
         st.error(f"Error loading data: {e}")
@@ -122,3 +122,4 @@ if st.button("🔍 Recommend"):
 
 # ---------- FOOTER ----------
 st.markdown('<div class="footer">Developed with ❤️ using Streamlit by Debritu Bose</div>', unsafe_allow_html=True)
+
