@@ -44,7 +44,7 @@ st.markdown("---")
 def load_data():
     books = pd.read_csv("books_small.csv")
     movies = pd.read_csv("movies_small.csv")
-    songs = pd.read_csv("songs_small.csv")
+    songs = pd.read_csv("Spotify_small.csv")
     electronics = pd.read_csv("electronics_small.csv")
     foods = pd.read_csv("foods_small.csv")
     clothes = pd.read_csv("clothes_small.csv")
@@ -132,3 +132,4 @@ st.markdown(
     "<p style='text-align:center;color:#666;'>Made with ❤️ using Streamlit | Debritu Bose</p>",
     unsafe_allow_html=True
 )
+
