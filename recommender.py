@@ -45,18 +45,18 @@ def load_data():
         # Strip whitespace from column names
         food.columns = food.columns.str.strip()
         # Automatically detect Name and Restaurant columns
-        name_col = [c for c in food.columns if 'name' in c.lower()][0]  # first column containing 'name'
-        rest_col = [c for c in food.columns if 'restaurant' in c.lower()][0]  # first containing 'restaurant'
+        name_col = [c for c in food.columns if 'Name' in c.lower()][0]  # first column containing 'name'
+        rest_col = [c for c in food.columns if 'Restaurant' in c.lower()][0]  # first containing 'restaurant'
         # Keep only valid rows
-        food = food[food[name_col].notna() & food[rest_col].notna()]
+        food = food[food[Name_col].notna() & food[Rest_col].notna()]
         # Strip whitespace from relevant columns
-        text_cols = [name_col, rest_col, 'Category', 'Description']
+        text_cols = [Name_col, Rest_col, 'Category', 'Description']
         for col in text_cols:
             if col in food.columns:
                 food[col] = food[col].astype(str).str.strip()
         # Save detected column names for later display
-        food._name_col = name_col
-        food._rest_col = rest_col
+        food._Name_col = name_col
+        food._Rest_col = rest_col
 
     return food, clothes, products, movies, songs, books
 
@@ -69,7 +69,7 @@ def get_recommendations(data, keywords, category):
 
     # Select text columns
     if category == "Food":
-        text_cols = [data._name_col, data._rest_col, 'Category', 'Description']
+        text_cols = [data._Name_col, data._Rest_col, 'Category', 'Description']
     elif category == "Clothes":
         text_cols = ['Name', 'Brand', 'Category', 'Description']
     elif category == "Products":
@@ -151,3 +151,4 @@ if st.button("🔍 Recommend"):
 
 # ---------- FOOTER ----------
 st.markdown('<div class="footer">Developed with ❤️ using Streamlit by Debritu Bose</div>', unsafe_allow_html=True)
+
