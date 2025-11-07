@@ -20,14 +20,14 @@ body { background-color: #f0f4f8; color: #333333; }
 st.markdown('<div class="title">✨ Basic Recommender System ✨</div>', unsafe_allow_html=True)
 st.write("Search across **Food**, **Clothes**, **Products**, **Movies**, **Songs**, and **Books**!")
 
-# ---------- LOAD FILES WITH CSV/EXCEL SUPPORT ----------
+# ---------- LOAD FILES WITH CSV/EXCEL AND MALFORMED ROW FIX ----------
 def read_file(file_path):
-    """Read CSV or Excel with encoding fallback."""
+    """Read CSV or Excel, skip bad lines, handle encoding."""
     if file_path.endswith(".csv") or file_path.endswith(".csv.xlsx"):
         try:
-            return pd.read_csv(file_path, encoding="utf-8", low_memory=False)
+            return pd.read_csv(file_path, encoding="utf-8", on_bad_lines='skip', low_memory=False)
         except UnicodeDecodeError:
-            return pd.read_csv(file_path, encoding="ISO-8859-1", low_memory=False)
+            return pd.read_csv(file_path, encoding="ISO-8859-1", on_bad_lines='skip', low_memory=False)
     elif file_path.endswith(".xlsx"):
         return pd.read_excel(file_path)
     else:
@@ -36,7 +36,7 @@ def read_file(file_path):
 @st.cache_data
 def load_data():
     try:
-        food = read_file("foods.csv.xlsx")          # or food.csv.xlsx
+        food = read_file("food.csv.xlsx")          # or food.csv.xlsx
         clothes = read_file("clothes.csv.xlsx")
         products = read_file("products.csv.xlsx")
         movies = read_file("Book1.xlsx")
