@@ -4,7 +4,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
 # ---------- PAGE CONFIG ----------
-st.set_page_config(page_title="Basic Recommender System", layout="centered")
+st.set_page_config(page_title="Universal Recommender System", layout="centered")
 
 # ---------- STYLING ----------
 st.markdown("""
@@ -17,10 +17,10 @@ body { background-color: #f0f4f8; color: #333333; }
 """, unsafe_allow_html=True)
 
 # ---------- PAGE HEADER ----------
-st.markdown('<div class="title">✨ Basic Recommender System ✨</div>', unsafe_allow_html=True)
+st.markdown('<div class="title">✨ Universal Recommender System ✨</div>', unsafe_allow_html=True)
 st.write("Search across **Food**, **Clothes**, **Products**, **Movies**, **Songs**, and **Books**!")
 
-# ---------- LOAD FILES WITH CSV AND MALFORMED ROW FIX ----------
+# ---------- LOAD FILES ----------
 def read_file(file_path):
     try:
         return pd.read_csv(file_path, encoding="utf-8", on_bad_lines='skip', low_memory=False)
@@ -37,34 +37,30 @@ def load_data():
     products = read_file("products.csv")
     movies = read_file("movie.csv")
     songs = read_file("Spotify_small.csv")
-    books = read_file("books_small.csv")
+    books = read_file("books-small.csv")
 
     # ---------- CLEAN FOOD DATA ----------
     if not food.empty:
         food.columns = food.columns.str.strip()
-        # Use exact column names from your CSV
-        name_col = 'Name' if 'Name' in food.columns else food.columns[0]
-        rest_col = 'Restaurant' if 'Restaurant' in food.columns else food.columns[1]
-        food = food[food[name_col].notna() & food[rest_col].notna()]
-        text_cols = [name_col, rest_col, 'Category', 'Description']
-        for col in text_cols:
-            if col in food.columns:
-                food[col] = food[col].astype(str).str.strip()
-        # Save detected column names for later display
-        food._name_col = name_col
-        food._rest_col = rest_col
+        if 'Name' in food.columns and 'Restaurant' in food.columns:
+            food = food[food['Name'].notna() & food['Restaurant'].notna()]
+            for col in ['Name', 'Restaurant', 'Category', 'Description']:
+                if col in food.columns:
+                    food[col] = food[col].astype(str).str.strip()
+        else:
+            st.error("Food CSV must have 'Name' and 'Restaurant' columns!")
 
     return food, clothes, products, movies, songs, books
 
 food, clothes, products, movies, songs, books = load_data()
 
 # ---------- RECOMMENDER FUNCTION ----------
-def get_recommendations(data, keywords, category):
+def get_recommendations(data, keywords, category, name_col=None, rest_col=None):
     if data is None or data.empty or keywords.strip() == "":
         return []
 
     if category == "Food":
-        text_cols = [data._name_col, data._rest_col, 'Category', 'Description']
+        text_cols = [name_col, rest_col, 'Category', 'Description']
     elif category == "Clothes":
         text_cols = ['Name', 'Brand', 'Category', 'Description']
     elif category == "Products":
@@ -114,27 +110,32 @@ if st.button("🔍 Recommend"):
     with st.spinner("Finding recommendations..."):
         if category == "Food":
             data = food
-            display_cols = [data._name_col, data._rest_col, 'Category', 'Description']
+            display_cols = ['Name', 'Restaurant', 'Category', 'Price', 'Description']
+            results = get_recommendations(data, keywords, category, name_col='Name', rest_col='Restaurant')
         elif category == "Clothes":
             data = clothes
             display_cols = ['Name', 'Brand', 'Category', 'Price', 'Description']
+            results = get_recommendations(data, keywords, category)
         elif category == "Products":
             data = products
             display_cols = ['Name', 'Brand', 'Category', 'Price', 'Description']
+            results = get_recommendations(data, keywords, category)
         elif category == "Movies":
             data = movies
             display_cols = ['title', 'genres', 'overview']
+            results = get_recommendations(data, keywords, category)
         elif category == "Songs":
             data = songs
             display_cols = ['track_name', 'artist_name', 'genre']
+            results = get_recommendations(data, keywords, category)
         elif category == "Books":
             data = books
             display_cols = ['Name', 'Book-Title', 'Author', 'Description']
+            results = get_recommendations(data, keywords, category)
         else:
             data = None
             display_cols = []
-
-        results = get_recommendations(data, keywords, category)
+            results = []
 
         if len(results) > 0:
             st.success("✅ Top Recommendations for you!")
@@ -145,5 +146,4 @@ if st.button("🔍 Recommend"):
             st.warning("😔 No results found. Try a different keyword!")
 
 # ---------- FOOTER ----------
-st.markdown('<div class="footer">Developed with ❤️ using Streamlit by Debritu Bose</div>', unsafe_allow_html=True)
-
+st.markdown('<div class="footer">Developed with ❤️ using Streamlit</div>', unsafe_allow_html=True)
