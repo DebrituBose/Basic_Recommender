@@ -20,38 +20,32 @@ body { background-color: #f0f4f8; color: #333333; }
 st.markdown('<div class="title">✨ Basic Recommender System ✨</div>', unsafe_allow_html=True)
 st.write("Search across **Food**, **Clothes**, **Products**, **Movies**, **Songs**, and **Books**!")
 
-# ---------- LOAD FILES WITH CSV/EXCEL AND MALFORMED ROW FIX ----------
+# ---------- LOAD FILES WITH CSV AND MALFORMED ROW FIX ----------
 def read_file(file_path):
-    """Read CSV or Excel, skip bad lines, handle encoding."""
-    if file_path.endswith(".csv") or file_path.endswith(".csv.xlsx"):
-        try:
-            return pd.read_csv(file_path, encoding="utf-8", on_bad_lines='skip', low_memory=False)
-        except UnicodeDecodeError:
-            return pd.read_csv(file_path, encoding="ISO-8859-1", on_bad_lines='skip', low_memory=False)
-    elif file_path.endswith(".xlsx"):
-        return pd.read_excel(file_path)
-    else:
-        raise ValueError(f"Unsupported file type: {file_path}")
+    """Read CSV, skip bad lines, handle encoding."""
+    try:
+        return pd.read_csv(file_path, encoding="utf-8", on_bad_lines='skip', low_memory=False)
+    except UnicodeDecodeError:
+        return pd.read_csv(file_path, encoding="ISO-8859-1", on_bad_lines='skip', low_memory=False)
+    except FileNotFoundError:
+        st.error(f"File not found: {file_path}")
+        return pd.DataFrame()
 
 @st.cache_data
 def load_data():
-    try:
-        food = read_file("food.csv.xlsx")          # or food.csv.xlsx
-        clothes = read_file("clothes.csv.xlsx")
-        products = read_file("products.csv.xlsx")
-        movies = read_file("Book1.xlsx")
-        songs = read_file("Spotify_small.csv")
-        books = read_file("books_small.csv")
-        return food, clothes, products, movies, songs, books
-    except Exception as e:
-        st.error(f"Error loading data: {e}")
-        return None, None, None, None, None, None
+    food = read_file("foods.csv")
+    clothes = read_file("clothes.csv")
+    products = read_file("products.csv")
+    movies = read_file("movies.csv")
+    songs = read_file("Spotify_small.csv")
+    books = read_file("books_small.csv")
+    return food, clothes, products, movies, songs, books
 
 food, clothes, products, movies, songs, books = load_data()
 
 # ---------- RECOMMENDER FUNCTION ----------
 def get_recommendations(data, keywords, category):
-    if data is None or len(data) == 0 or keywords.strip() == "":
+    if data is None or data.empty or keywords.strip() == "":
         return []
 
     # Select text columns
@@ -131,7 +125,7 @@ if st.button("🔍 Recommend"):
         if len(results) > 0:
             st.success("✅ Top Recommendations for you!")
             for i, row in enumerate(results, 1):
-                info = " | ".join([f"{col}: {row[col]}" for col in display_cols])
+                info = " | ".join([f"{col}: {row[col]}" for col in display_cols if col in row])
                 st.markdown(f"**{i}.** {info}")
         else:
             st.warning("😔 No results found. Try a different keyword!")
