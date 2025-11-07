@@ -41,15 +41,18 @@ def load_data():
 
     # ---------- CLEAN FOOD DATA ----------
     if not food.empty:
-        food.columns = food.columns.str.strip()
-        if 'Name' in food.columns and 'Restaurant' in food.columns:
-            food = food[food['Name'].notna() & food['Restaurant'].notna()]
-            for col in ['Name', 'Restaurant', 'Category', 'Description']:
+        # normalize column names: strip spaces and lowercase
+        food.columns = food.columns.str.strip().str.lower()
+
+        # check for required columns
+        if 'name' in food.columns and 'restaurant' in food.columns:
+            food = food[food['name'].notna() & food['restaurant'].notna()]
+            for col in ['name', 'restaurant', 'category', 'description']:
                 if col in food.columns:
                     food[col] = food[col].astype(str).str.strip()
         else:
-            st.error("Food CSV must have 'Name' and 'Restaurant' columns!")
-
+            st.error("Food CSV must have columns 'Name' and 'Restaurant' (any case)!")
+    
     return food, clothes, products, movies, songs, books
 
 food, clothes, products, movies, songs, books = load_data()
@@ -60,7 +63,7 @@ def get_recommendations(data, keywords, category):
         return []
 
     if category == "Food":
-        text_cols = ['Name', 'Restaurant', 'Category', 'Description']
+        text_cols = ['name', 'restaurant', 'category', 'description']
     elif category == "Clothes":
         text_cols = ['Name', 'Brand', 'Category', 'Description']
     elif category == "Products":
@@ -110,7 +113,7 @@ if st.button("🔍 Recommend"):
     with st.spinner("Finding recommendations..."):
         if category == "Food":
             data = food
-            display_cols = ['Name', 'Restaurant', 'Category', 'Price', 'Description']
+            display_cols = ['name', 'restaurant', 'category', 'price', 'description']
         elif category == "Clothes":
             data = clothes
             display_cols = ['Name', 'Brand', 'Category', 'Price', 'Description']
