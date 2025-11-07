@@ -109,7 +109,7 @@ if st.button("✨ Get Recommendations"):
     elif category == "Songs":
         results = get_recommendations(songs, keywords, category)
     elif category == "Electronics":
-)
+
 
         results = get_recommendations(electronics, keywords, category)
     elif category == "Foods":
@@ -138,6 +138,7 @@ st.markdown(
     "<p style='text-align:center;color:#666;'>Made with ❤️ using Streamlit | Debritu Bose</p>",
     unsafe_allow_html=True
 )
+
 
 
 
