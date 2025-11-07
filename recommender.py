@@ -4,16 +4,16 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
 # ---- PAGE CONFIG ----
-st.set_page_config(page_title="Basic Recommender System", page_icon="🎧", layout="wide")
+st.set_page_config(page_title="AI Recommender", page_icon="🤖", layout="wide")
 
 # ---- PAGE STYLE ----
 st.markdown("""
     <style>
     body {
-        background: linear-gradient(135deg, #89f7fe, #66a6ff);
+        background: linear-gradient(120deg, #d4fc79, #96e6a1);
     }
     .main {
-        background: rgba(255,255,255,0.8);
+        background: rgba(255,255,255,0.7);
         padding: 30px;
         border-radius: 20px;
         box-shadow: 0 4px 12px rgba(0,0,0,0.1);
@@ -35,7 +35,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ---- HEADER ----
-st.markdown("<h1>🎧 Basic Recommender System</h1>", unsafe_allow_html=True)
+st.markdown("<h1>🤖 Basic Recommender System</h1>", unsafe_allow_html=True)
 st.markdown("<h3>Find books, movies, or songs similar to your choice 🎯</h3>", unsafe_allow_html=True)
 st.markdown("---")
 
@@ -70,8 +70,10 @@ def get_recommendations(data, keywords, category):
     elif category == "Books":
         text_cols = ['Name', 'Book-Title', 'Author', 'Description']
     else:
+        # fallback to any object columns
         text_cols = [c for c in data.columns if data[c].dtype == 'object']
 
+    # Merge text columns safely
     for col in text_cols:
         if col not in data.columns:
             data[col] = ""
@@ -117,4 +119,16 @@ if st.button("✨ Get Recommendations"):
             st.markdown(f"""
             <div style='background-color:#f1f5f9;padding:15px;border-radius:15px;margin-bottom:10px;'>
                 <strong>{item.get('track_name', item.get('title', item.get('Name', 'Unnamed Item')))}</strong><br>
-                <em>{item.get('artist_name', item.get('Author_
+                <em>{item.get('artist_name', item.get('Author', ''))}</em><br>
+                <span style='color:#555;'>{item.get('genre', item.get('genres', ''))}</span>
+            </div>
+            """, unsafe_allow_html=True)
+    else:
+        st.warning("😔 No perfect match found. Try another keyword!")
+
+# ---- FOOTER ----
+st.markdown("---")
+st.markdown(
+    "<p style='text-align:center;color:#666;'>Made with ❤️ using Streamlit | Debritu Bose</p>",
+    unsafe_allow_html=True
+)
