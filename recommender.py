@@ -40,7 +40,7 @@ st.markdown(
 
 # ---------- PAGE HEADER ----------
 st.markdown('<div class="title">✨ Basic Recommender System ✨</div>', unsafe_allow_html=True)
-st.write("Search across **Books**,**Products**, **Movies**, **Songs**, **Clothes**, and **Food** to find items similar to your interest!")
+st.write("Search across **Books**, **Products**, **Movies**, **Songs**, **Clothes**, and **Food** to find items similar to your interest!")
 
 # ---------- LOAD DATA ----------
 @st.cache_data
@@ -53,6 +53,13 @@ def load_data():
         datasets['Songs'] = pd.read_csv("Spotify_small.csv", low_memory=False)
         datasets['Clothes'] = pd.read_csv("clothes_small.csv", low_memory=False)  # add your clothes dataset
         datasets['Food'] = pd.read_csv("foods_small.csv", low_memory=False)        # add your food dataset
+
+        # Clean column names: strip spaces and replace spaces with underscores
+        for key in datasets:
+            df = datasets[key]
+            df.columns = [c.strip().replace(" ", "_") for c in df.columns]
+            datasets[key] = df
+
         return datasets
     except Exception as e:
         st.error(f"Error loading data: {e}")
@@ -61,10 +68,10 @@ def load_data():
 data_map = load_data()
 categories = list(data_map.keys())
 
-# ---------- DISPLAY COLUMNS PER CATEGORY ----------
+# ---------- DISPLAY COLUMNS PER CATEGORY (after cleaning) ----------
 display_columns = {
     "Books": "Name",
-    "Products":"Name",
+    "Products": "Name',
     "Movies": "title",
     "Songs": "track_name",
     "Clothes": "Name",
@@ -75,10 +82,10 @@ display_columns = {
 def get_recommendations(data, keywords):
     """Return top 5 recommendations using TF-IDF cosine similarity, ignoring irrelevant columns."""
     if data is None or len(data) == 0 or keywords.strip() == "":
-        return pd.DataFrame()  # return empty DataFrame
+        return pd.DataFrame()
 
     # Exclude non-content columns
-    exclude_cols = ["Gender", "ID", "Price"]  # customize per dataset
+    exclude_cols = ["Gender", "ID", "Price"]
     text_cols = [c for c in data.columns if data[c].dtype == 'object' and c not in exclude_cols]
 
     if not text_cols:
@@ -122,7 +129,8 @@ if st.button("🔍 Recommend"):
             display_col = display_columns.get(category, results.select_dtypes(include='object').columns[0])
 
             for i, row in results.iterrows():
-                st.markdown(f"**{i+1}.** {row.get(display_col, 'N/A')}")
+                value = row.get(display_col, "N/A")
+                st.markdown(f"**{i+1}.** {value}")
         else:
             st.warning("😔 No results found. Try a different keyword!")
 
