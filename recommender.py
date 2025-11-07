@@ -19,45 +19,47 @@ body { background-color: #f0f4f8; color: #333333; }
 st.markdown('<div class="title">✨ Universal Recommender System ✨</div>', unsafe_allow_html=True)
 st.write("Search across **Food**, **Clothes**, **Products**, **Movies**, **Songs**, and **Books**!")
 
-# ---------- LOAD FILES ----------
-def read_file(file_path):
-    """Read CSV or Excel file automatically."""
-    if file_path.endswith(".csv"):
-        try:
-            return pd.read_csv(file_path, encoding="utf-8", on_bad_lines='skip', low_memory=False)
-        except UnicodeDecodeError:
-            return pd.read_csv(file_path, encoding="ISO-8859-1", on_bad_lines='skip', low_memory=False)
-        except FileNotFoundError:
-            st.error(f"File not found: {file_path}")
-            return pd.DataFrame()
-    elif file_path.endswith(".xlsx"):
-        try:
-            return pd.read_excel(file_path)
-        except FileNotFoundError:
-            st.error(f"File not found: {file_path}")
-            return pd.DataFrame()
-    else:
-        st.error("Unsupported file format! Use .csv or .xlsx")
+# ---------- FILE UPLOAD ----------
+def read_file(uploaded_file):
+    if uploaded_file is None:
         return pd.DataFrame()
+    name = uploaded_file.name.lower()
+    try:
+        if name.endswith(".csv"):
+            return pd.read_csv(uploaded_file, encoding="utf-8", on_bad_lines='skip', low_memory=False)
+        elif name.endswith(".xlsx"):
+            return pd.read_excel(uploaded_file)
+        else:
+            st.error("Unsupported file type! Upload .csv or .xlsx")
+            return pd.DataFrame()
+    except Exception as e:
+        st.error(f"Error reading file: {e}")
+        return pd.DataFrame()
+
+st.sidebar.header("Upload your datasets")
+food_file = st.sidebar.file_uploader("Upload Food CSV/XLSX", type=["csv","xlsx"])
+clothes_file = st.sidebar.file_uploader("Upload Clothes CSV/XLSX", type=["csv","xlsx"])
+products_file = st.sidebar.file_uploader("Upload Products CSV/XLSX", type=["csv","xlsx"])
+movies_file = st.sidebar.file_uploader("Upload Movies CSV/XLSX", type=["csv","xlsx"])
+songs_file = st.sidebar.file_uploader("Upload Songs CSV/XLSX", type=["csv","xlsx"])
+books_file = st.sidebar.file_uploader("Upload Books CSV/XLSX", type=["csv","xlsx"])
 
 @st.cache_data
 def load_data():
-    food = read_file("foods.xlsx")       # you can also use food.csv
-    clothes = read_file("clothes.csv")
-    products = read_file("products.csv")
-    movies = read_file("movie.csv")
-    songs = read_file("Spotify_small.csv")
-    books = read_file("books_small.csv")
+    food = read_file(foods_file)
+    clothes = read_file(clothes_file)
+    products = read_file(products_file)
+    movies = read_file(movie_file)
+    songs = read_file(Spotify_small_file)
+    books = read_file(books_small_file)
 
     # ---------- CLEAN FOOD DATA ----------
     if not food.empty:
         food.columns = food.columns.str.strip().str.lower()
         st.write("Food CSV Columns Detected:", food.columns.tolist())
-        
-        # Check required columns
         if 'name' in food.columns and 'restaurant' in food.columns:
             food = food[food['name'].notna() & food['restaurant'].notna()]
-            for col in ['name', 'restaurant', 'category', 'description']:
+            for col in ['name','restaurant','category','description']:
                 if col in food.columns:
                     food[col] = food[col].astype(str).str.strip()
         else:
@@ -72,18 +74,19 @@ def get_recommendations(data, keywords, category):
     if data is None or data.empty or keywords.strip() == "":
         return []
 
+    # select text columns for similarity
     if category == "Food":
-        text_cols = ['name', 'restaurant', 'category', 'description']
+        text_cols = ['name','restaurant','category','description']
     elif category == "Clothes":
-        text_cols = ['Name', 'Brand', 'Category', 'Description']
+        text_cols = ['Name','Brand','Category','Description']
     elif category == "Products":
-        text_cols = ['Name', 'Brand', 'Category', 'Description']
+        text_cols = ['Name','Brand','Category','Description']
     elif category == "Movies":
-        text_cols = ['title', 'genres', 'overview']
+        text_cols = ['title','genres','overview']
     elif category == "Songs":
-        text_cols = ['track_name', 'artist_name', 'genre']
+        text_cols = ['track_name','artist_name','genre']
     elif category == "Books":
-        text_cols = ['Name', 'Book-Title', 'Author', 'Description']
+        text_cols = ['Name','Book-Title','Author','Description']
     else:
         text_cols = [c for c in data.columns if data[c].dtype == 'object']
 
@@ -95,7 +98,6 @@ def get_recommendations(data, keywords, category):
 
     tfidf = TfidfVectorizer(stop_words='english')
     matrix = tfidf.fit_transform(data["combined_text"])
-
     query_vec = tfidf.transform([keywords])
     cosine_sim = cosine_similarity(query_vec, matrix).flatten()
 
@@ -106,16 +108,14 @@ def get_recommendations(data, keywords, category):
     for idx, score in zip(top_indices, top_scores):
         if score > 0.01:
             results.append(data.iloc[idx])
-
     if len(results) == 0:
         results = data.sample(min(5, len(data)))
-
     return results
 
 # ---------- APP INTERFACE ----------
 category = st.radio(
     "Select Category:",
-    ["Food", "Clothes", "Products", "Movies", "Songs", "Books"]
+    ["Food","Clothes","Products","Movies","Songs","Books"]
 )
 keywords = st.text_input("Enter keywords (e.g., biryani, jeans, laptop, action, love, dance):")
 
@@ -123,22 +123,22 @@ if st.button("🔍 Recommend"):
     with st.spinner("Finding recommendations..."):
         if category == "Food":
             data = food
-            display_cols = ['name', 'restaurant', 'category', 'price', 'description']
+            display_cols = ['name','restaurant','category','price','description']
         elif category == "Clothes":
             data = clothes
-            display_cols = ['Name', 'Brand', 'Category', 'Price', 'Description']
+            display_cols = ['Name','Brand','Category','Price','Description']
         elif category == "Products":
             data = products
-            display_cols = ['Name', 'Brand', 'Category', 'Price', 'Description']
+            display_cols = ['Name','Brand','Category','Price','Description']
         elif category == "Movies":
             data = movies
-            display_cols = ['title', 'genres', 'overview']
+            display_cols = ['title','genres','overview']
         elif category == "Songs":
             data = songs
-            display_cols = ['track_name', 'artist_name', 'genre']
+            display_cols = ['track_name','artist_name','genre']
         elif category == "Books":
             data = books
-            display_cols = ['Name', 'Book-Title', 'Author', 'Description']
+            display_cols = ['Name','Book-Title','Author','Description']
         else:
             data = None
             display_cols = []
@@ -147,7 +147,7 @@ if st.button("🔍 Recommend"):
 
         if len(results) > 0:
             st.success("✅ Top Recommendations for you!")
-            for i, row in enumerate(results, 1):
+            for i, row in enumerate(results,1):
                 info = " | ".join([f"{col}: {row[col]}" for col in display_cols if col in row])
                 st.markdown(f"**{i}.** {info}")
         else:
