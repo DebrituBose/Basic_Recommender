@@ -114,7 +114,7 @@ if st.button("🔍 Recommend"):
     with st.spinner("Finding recommendations..."):
         if category == "Food":
             data = food
-            display_cols = [data._name_col, data._rest_col, 'Category', 'Price', 'Description']
+            display_cols = [data._name_col, data._rest_col, 'Category', 'Description']
         elif category == "Clothes":
             data = clothes
             display_cols = ['Name', 'Brand', 'Category', 'Price', 'Description']
@@ -146,3 +146,4 @@ if st.button("🔍 Recommend"):
 
 # ---------- FOOTER ----------
 st.markdown('<div class="footer">Developed with ❤️ using Streamlit by Debritu Bose</div>', unsafe_allow_html=True)
+
