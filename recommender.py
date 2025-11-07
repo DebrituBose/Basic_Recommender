@@ -47,12 +47,12 @@ books_file = st.sidebar.file_uploader("Upload Books CSV/XLSX", type=["csv","xlsx
 @st.cache_data
 def load_data():
     # ✅ Correct variable names
-    food = read_file(foods_file)
+    food = read_file(food_file)
     clothes = read_file(clothes_file)
     products = read_file(products_file)
-    movies = read_file(movie_file)
-    songs = read_file(Spotify_small_file)
-    books = read_file(books_small_file)
+    movies = read_file(movies_file)
+    songs = read_file(songs_file)
+    books = read_file(books_file)
 
     # ---------- CLEAN FOOD DATA ----------
     if not food.empty:
@@ -152,3 +152,4 @@ if st.button("🔍 Recommend"):
             st.warning("😔 No results found. Try a different keyword!")
 
 st.markdown('<div class="footer">Developed with ❤️ using Streamlit</div>', unsafe_allow_html=True)
+
