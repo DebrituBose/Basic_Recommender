@@ -17,7 +17,7 @@ def load_data(filename):
 datasets = {
     "Movies": load_data("movies_small.csv"),
     "Books": load_data("books_small.csv"),
-    "Songs": load_data("songs_small.csv"),
+    "Songs": load_data("Spotify_small.csv"),
     "Electronics": load_data("electronics_small.csv"),
     "Foods": load_data("foods_small.csv"),
     "Clothes": load_data("clothes_small.csv")
@@ -56,4 +56,5 @@ if not data.empty:
             st.error("❌ No perfect match found. Try a different keyword.")
 else:
     st.error(f"No data loaded for {option}. Please check if the CSV file exists.")
+
 
