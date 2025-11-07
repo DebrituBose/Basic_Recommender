@@ -48,6 +48,21 @@ categories = list(data_map.keys())
 def get_recommendations(data, keywords):
     if data is None or len(data) == 0 or keywords.strip() == "":
         return pd.DataFrame()
+        # Define irrelevant columns per dataset
+irrelevant_columns = {
+    "Books": ["ID"],
+    "Movies": ["ID", "Budget", "Revenue"],
+    "Songs": ["ID"],
+    "Clothes": ["Gender", "Size", "Stock"],   # only exclude non-name fields
+    "Food": ["Gender", "Marital_Status"],     # exclude irrelevant
+    "Products": ["Gender", "Marital_Status"]  # exclude irrelevant
+}
+
+# Automatic display column selection
+exclude_cols = irrelevant_columns.get(category, [])
+obj_cols = [c for c in results.select_dtypes(include='object').columns if c not in exclude_cols]
+display_col = obj_cols[0] if obj_cols else results.columns[0]
+
 
     # Exclude irrelevant columns for all datasets
     exclude_cols = [
@@ -107,3 +122,4 @@ if st.button("🔍 Recommend"):
             st.warning("😔 No results found. Try a different keyword!")
 
 st.markdown('<div class="footer">Developed with ❤️ using Streamlit</div>', unsafe_allow_html=True)
+
