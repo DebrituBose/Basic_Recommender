@@ -20,16 +20,22 @@ body { background-color: #f0f4f8; color: #333333; }
 st.markdown('<div class="title">✨ Basic Recommender System ✨</div>', unsafe_allow_html=True)
 st.write("Search across **Food**, **Clothes**, **Products**, **Movies**, **Songs**, and **Books**!")
 
-# ---------- LOAD DATA ----------
+# ---------- LOAD CSV WITH ENCODING FALLBACK ----------
+def read_csv_with_fallback(file_path):
+    try:
+        return pd.read_csv(file_path, low_memory=False, encoding='utf-8')
+    except UnicodeDecodeError:
+        return pd.read_csv(file_path, low_memory=False, encoding='ISO-8859-1')
+
 @st.cache_data
 def load_data():
     try:
-        food = pd.read_csv("foods.csv.xlsx", low_memory=False)
-        clothes = pd.read_csv("clothes.csv.xlsx", low_memory=False)
-        products = pd.read_csv("products.csv.xlsx", low_memory=False)
-        movies = pd.read_csv("Book1.xlsx", low_memory=False)
-        songs = pd.read_csv("Spotify_small.csv", low_memory=False)
-        books = pd.read_csv("books_small.csv", low_memory=False)
+        food = read_csv_with_fallback("food.csv.xlsx")
+        clothes = read_csv_with_fallback("clothes.csv.xlsx")
+        products = read_csv_with_fallback("products.csv.xlsx")
+        movies = read_csv_with_fallback("Book1.xlsx")
+        songs = read_csv_with_fallback("Spotify_small.csv")
+        books = read_csv_with_fallback("books_small.csv")
         return food, clothes, products, movies, songs, books
     except Exception as e:
         st.error(f"Error loading data: {e}")
@@ -42,7 +48,7 @@ def get_recommendations(data, keywords, category):
     if data is None or len(data) == 0 or keywords.strip() == "":
         return []
 
-    # Select text columns for TF-IDF
+    # Select text columns
     if category == "Food":
         text_cols = ['Name', 'Restaurant', 'Category', 'Description']
     elif category == "Clothes":
@@ -58,19 +64,19 @@ def get_recommendations(data, keywords, category):
     else:
         text_cols = [c for c in data.columns if data[c].dtype == 'object']
 
-    # Ensure columns exist
+    # Ensure all columns exist
     for col in text_cols:
         if col not in data.columns:
             data[col] = ""
 
-    # Combine text for TF-IDF
+    # Combine text
     data["combined_text"] = data[text_cols].fillna("").astype(str).agg(" ".join, axis=1)
 
     # TF-IDF vectorization
     tfidf = TfidfVectorizer(stop_words='english')
     matrix = tfidf.fit_transform(data["combined_text"])
 
-    # Compute similarity with query
+    # Compute similarity
     query_vec = tfidf.transform([keywords])
     cosine_sim = cosine_similarity(query_vec, matrix).flatten()
 
@@ -94,7 +100,6 @@ category = st.radio(
     "Select Category:",
     ["Food", "Clothes", "Products", "Movies", "Songs", "Books"]
 )
-
 keywords = st.text_input("Enter keywords (e.g., biryani, jeans, laptop, action, love, dance):")
 
 if st.button("🔍 Recommend"):
