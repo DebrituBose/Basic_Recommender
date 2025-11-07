@@ -37,7 +37,7 @@ def load_data():
     products = read_file("products.csv")
     movies = read_file("movie.csv")
     songs = read_file("Spotify_small.csv")
-    books = read_file("books-small.csv")
+    books = read_file("books_small.csv")
 
     # ---------- CLEAN FOOD DATA ----------
     if not food.empty:
@@ -55,12 +55,12 @@ def load_data():
 food, clothes, products, movies, songs, books = load_data()
 
 # ---------- RECOMMENDER FUNCTION ----------
-def get_recommendations(data, keywords, category, name_col=None, rest_col=None):
+def get_recommendations(data, keywords, category):
     if data is None or data.empty or keywords.strip() == "":
         return []
 
     if category == "Food":
-        text_cols = [name_col, rest_col, 'Category', 'Description']
+        text_cols = ['Name', 'Restaurant', 'Category', 'Description']
     elif category == "Clothes":
         text_cols = ['Name', 'Brand', 'Category', 'Description']
     elif category == "Products":
@@ -111,31 +111,26 @@ if st.button("🔍 Recommend"):
         if category == "Food":
             data = food
             display_cols = ['Name', 'Restaurant', 'Category', 'Price', 'Description']
-            results = get_recommendations(data, keywords, category, name_col='Name', rest_col='Restaurant')
         elif category == "Clothes":
             data = clothes
             display_cols = ['Name', 'Brand', 'Category', 'Price', 'Description']
-            results = get_recommendations(data, keywords, category)
         elif category == "Products":
             data = products
             display_cols = ['Name', 'Brand', 'Category', 'Price', 'Description']
-            results = get_recommendations(data, keywords, category)
         elif category == "Movies":
             data = movies
             display_cols = ['title', 'genres', 'overview']
-            results = get_recommendations(data, keywords, category)
         elif category == "Songs":
             data = songs
             display_cols = ['track_name', 'artist_name', 'genre']
-            results = get_recommendations(data, keywords, category)
         elif category == "Books":
             data = books
             display_cols = ['Name', 'Book-Title', 'Author', 'Description']
-            results = get_recommendations(data, keywords, category)
         else:
             data = None
             display_cols = []
-            results = []
+
+        results = get_recommendations(data, keywords, category)
 
         if len(results) > 0:
             st.success("✅ Top Recommendations for you!")
