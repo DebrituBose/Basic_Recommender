@@ -1,60 +1,80 @@
 import streamlit as st
 import pandas as pd
+import difflib
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
-# ---------- Load datasets ----------
-st.title("🎯 Multi-Domain Recommendation System (AIML Project)")
-
+# --------------------------
+# Step 1: Load all datasets
+# --------------------------
 @st.cache_data
 def load_data():
-    books = pd.read_csv("books_small.csv")
-    movies = pd.read_csv("movies_small.csv")
-    songs = pd.read_csv("Spotify_small.csv")
-    electronics = pd.read_csv("electronics_small.csv")
-    foods = pd.read_csv("foods_small.csv")
-    clothes = pd.read_csv("clothes_small.csv")
+    books = pd.read_csv("books_small.csv", low_memory=False)
+    movies = pd.read_csv("movies_small.csv", low_memory=False)
+    songs = pd.read_csv("songs_small.csv", low_memory=False)
+    electronics = pd.read_csv("electronics_small.csv", low_memory=False)
+    foods = pd.read_csv("foods_small.csv", low_memory=False)
+    clothes = pd.read_csv("clothes_small.csv", low_memory=False)
     return books, movies, songs, electronics, foods, clothes
 
 books, movies, songs, electronics, foods, clothes = load_data()
 
-# ---------- Helper Function ----------
-def get_recommendations(df, column, query, top_n=5):
-    df = df.dropna(subset=[column])
+# --------------------------
+# Step 2: Create TF-IDF helper
+# --------------------------
+def build_similarity_matrix(df, text_column):
+    df[text_column] = df[text_column].fillna('')
     tfidf = TfidfVectorizer(stop_words='english')
-    tfidf_matrix = tfidf.fit_transform(df[column].astype(str))
-    cosine_sim = cosine_similarity(tfidf_matrix, tfidf_matrix)
-    indices = pd.Series(df.index, index=df[column].astype(str)).drop_duplicates()
+    tfidf_matrix = tfidf.fit_transform(df[text_column])
+    similarity = cosine_similarity(tfidf_matrix)
+    return similarity
 
-    if query not in indices:
-        return ["No exact match found. Try another name."]
+# --------------------------
+# Step 3: General recommend function
+# --------------------------
+def get_recommendations(user_input, df, text_column, name):
+    titles = df[text_column].dropna().tolist()
+    close_matches = difflib.get_close_matches(user_input, titles, n=1, cutoff=0.2)
     
-    idx = indices[query]
-    sim_scores = list(enumerate(cosine_sim[idx]))
-    sim_scores = sorted(sim_scores, key=lambda x: x[1], reverse=True)
-    sim_scores = sim_scores[1:top_n+1]
-    rec_indices = [i[0] for i in sim_scores]
-    return df[column].iloc[rec_indices].tolist()
+    if not close_matches:
+        st.warning(f"No close matches found in {name}. Try a different word.")
+        return
+    
+    matched_title = close_matches[0]
+    st.success(f"🔍 Showing {name} similar to: {matched_title}")
+    
+    try:
+        similarity = build_similarity_matrix(df, text_column)
+        index = df[df[text_column] == matched_title].index[0]
+        scores = list(enumerate(similarity[index]))
+        sorted_scores = sorted(scores, key=lambda x: x[1], reverse=True)[1:6]
+        for i, score in sorted_scores:
+            st.write(f"👉 {df[text_column].iloc[i]}")
+    except Exception as e:
+        st.warning(f"Couldn’t generate recommendations due to: {e}")
 
-# ---------- User Selection ----------
-st.sidebar.header("Choose a Recommendation Category:")
-option = st.sidebar.selectbox(
-    "Select type of recommendation",
-    ["Movies", "Books", "Songs", "Electronics", "Foods", "Clothes"]
+# --------------------------
+# Step 4: Streamlit UI
+# --------------------------
+st.title("🎯 Multi-Domain AI Recommender System")
+
+option = st.selectbox(
+    "Choose what you want recommendations for:",
+    ["Books", "Movies", "Songs", "Electronics", "Foods", "Clothes"]
 )
 
-query = st.text_input(f"Enter a {option[:-1]} name to get recommendations:")
+user_input = st.text_input("Enter a title, name, or keyword:")
 
 if st.button("Recommend"):
-    if option == "Movies":
-        st.write(get_recommendations(movies, 'title', query))
-    elif option == "Books":
-        st.write(get_recommendations(books, books.columns[0], query))
+    if option == "Books":
+        get_recommendations(user_input, books, 'title', 'Books')
+    elif option == "Movies":
+        get_recommendations(user_input, movies, 'title', 'Movies')
     elif option == "Songs":
-        st.write(get_recommendations(songs, 'track_name', query))
+        get_recommendations(user_input, songs, 'track_name', 'Songs')
     elif option == "Electronics":
-        st.write(get_recommendations(electronics, electronics.columns[0], query))
+        get_recommendations(user_input, electronics, 'title', 'Electronics')
     elif option == "Foods":
-        st.write(get_recommendations(foods, foods.columns[0], query))
+        get_recommendations(user_input, foods, 'Item_Name', 'Foods')
     elif option == "Clothes":
-        st.write(get_recommendations(clothes, clothes.columns[0], query))
+        get_recommendations(user_input, clothes, 'Item_Name', 'Clothes')
