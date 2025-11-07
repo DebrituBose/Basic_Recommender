@@ -21,17 +21,28 @@ st.write("Search across **Food**, **Clothes**, **Products**, **Movies**, **Songs
 
 # ---------- LOAD FILES ----------
 def read_file(file_path):
-    try:
-        return pd.read_csv(file_path, encoding="utf-8", on_bad_lines='skip', low_memory=False)
-    except UnicodeDecodeError:
-        return pd.read_csv(file_path, encoding="ISO-8859-1", on_bad_lines='skip', low_memory=False)
-    except FileNotFoundError:
-        st.error(f"File not found: {file_path}")
+    """Read CSV or Excel file automatically."""
+    if file_path.endswith(".csv"):
+        try:
+            return pd.read_csv(file_path, encoding="utf-8", on_bad_lines='skip', low_memory=False)
+        except UnicodeDecodeError:
+            return pd.read_csv(file_path, encoding="ISO-8859-1", on_bad_lines='skip', low_memory=False)
+        except FileNotFoundError:
+            st.error(f"File not found: {file_path}")
+            return pd.DataFrame()
+    elif file_path.endswith(".xlsx"):
+        try:
+            return pd.read_excel(file_path)
+        except FileNotFoundError:
+            st.error(f"File not found: {file_path}")
+            return pd.DataFrame()
+    else:
+        st.error("Unsupported file format! Use .csv or .xlsx")
         return pd.DataFrame()
 
 @st.cache_data
 def load_data():
-    food = read_file("foods.csv")
+    food = read_file("foods.xlsx")       # you can also use food.csv
     clothes = read_file("clothes.csv")
     products = read_file("products.csv")
     movies = read_file("movie.csv")
@@ -40,12 +51,10 @@ def load_data():
 
     # ---------- CLEAN FOOD DATA ----------
     if not food.empty:
-        # normalize column names: strip spaces and lowercase
         food.columns = food.columns.str.strip().str.lower()
+        st.write("Food CSV Columns Detected:", food.columns.tolist())
         
-        st.write("Food CSV Columns:", food.columns.tolist())  # <-- show columns in app
-        
-        # check for required columns
+        # Check required columns
         if 'name' in food.columns and 'restaurant' in food.columns:
             food = food[food['name'].notna() & food['restaurant'].notna()]
             for col in ['name', 'restaurant', 'category', 'description']:
