@@ -36,7 +36,7 @@ def load_data():
     food = read_file("foods.csv")
     clothes = read_file("clothes.csv")
     products = read_file("products.csv")
-    movies = read_file("movies.csv")
+    movies = read_file("movie.csv")
     songs = read_file("Spotify_small.csv")
     books = read_file("books_small.csv")
     return food, clothes, products, movies, songs, books
@@ -132,3 +132,4 @@ if st.button("🔍 Recommend"):
 
 # ---------- FOOTER ----------
 st.markdown('<div class="footer">Developed with ❤️ using Streamlit by Debritu Bose</div>', unsafe_allow_html=True)
+
