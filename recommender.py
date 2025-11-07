@@ -4,41 +4,18 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
 # ---------- PAGE CONFIG ----------
-st.set_page_config(page_title="Universal Recommender System", layout="centered")
+st.set_page_config(page_title="Basic Recommender System", layout="centered")
 
 # ---------- STYLING ----------
-st.markdown(
-    """
-    <style>
-    body {
-        background-color: #f0f4f8;
-        color: #333333;
-    }
-    .main {
-        background-color: #ffffff;
-        border-radius: 12px;
-        padding: 25px;
-        box-shadow: 0 0 12px rgba(0, 0, 0, 0.1);
-    }
-    .title {
-        text-align: center;
-        color: #0078ff;
-        font-size: 32px;
-        font-weight: 700;
-        margin-bottom: 10px;
-    }
-    .footer {
-        text-align: center;
-        font-size: 13px;
-        margin-top: 40px;
-        color: #777;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
+st.markdown("""
+<style>
+body {background-color: #f0f4f8; color: #333333;}
+.main {background-color: #ffffff; border-radius: 12px; padding: 25px; box-shadow: 0 0 12px rgba(0, 0, 0, 0.1);}
+.title {text-align: center; color: #0078ff; font-size: 32px; font-weight: 700; margin-bottom: 10px;}
+.footer {text-align: center; font-size: 13px; margin-top: 40px; color: #777;}
+</style>
+""", unsafe_allow_html=True)
 
-# ---------- PAGE HEADER ----------
 st.markdown('<div class="title">✨ Basic Recommender System ✨</div>', unsafe_allow_html=True)
 st.write("Search across **Books**, **Products**, **Movies**, **Songs**, **Clothes**, and **Food** to find items similar to your interest!")
 
@@ -51,15 +28,14 @@ def load_data():
         datasets['Products'] = pd.read_csv("electronics_small.csv", low_memory=False)
         datasets['Movies'] = pd.read_csv("movies_small.csv", low_memory=False)
         datasets['Songs'] = pd.read_csv("Spotify_small.csv", low_memory=False)
-        datasets['Clothes'] = pd.read_csv("clothes_small.csv", low_memory=False)  # add your clothes dataset
-        datasets['Food'] = pd.read_csv("foods_small.csv", low_memory=False)        # add your food dataset
+        datasets['Clothes'] = pd.read_csv("clothes_small.csv", low_memory=False)
+        datasets['Food'] = pd.read_csv("foods_small.csv", low_memory=False)
 
-        # Clean column names: strip spaces and replace spaces with underscores
+        # Clean column names: strip spaces, replace spaces & hyphens with underscores
         for key in datasets:
             df = datasets[key]
-            df.columns = [c.strip().replace(" ", "_") for c in df.columns]
+            df.columns = [c.strip().replace(" ", "_").replace("-", "_") for c in df.columns]
             datasets[key] = df
-
         return datasets
     except Exception as e:
         st.error(f"Error loading data: {e}")
@@ -68,19 +44,8 @@ def load_data():
 data_map = load_data()
 categories = list(data_map.keys())
 
-# ---------- DISPLAY COLUMNS PER CATEGORY (after cleaning) ----------
-display_columns = {
-    "Books": "Name",
-    "Products": "Name",
-    "Movies": "title",
-    "Songs": "track_name",
-    "Clothes": "Name",
-    "Food": "Name"
-}
-
 # ---------- RECOMMENDER FUNCTION ----------
 def get_recommendations(data, keywords):
-    """Return top 5 recommendations using TF-IDF cosine similarity, ignoring irrelevant columns."""
     if data is None or len(data) == 0 or keywords.strip() == "":
         return pd.DataFrame()
 
@@ -91,23 +56,18 @@ def get_recommendations(data, keywords):
     if not text_cols:
         return pd.DataFrame()
 
-    # Combine text columns
     data["combined_text"] = data[text_cols].fillna("").astype(str).agg(" ".join, axis=1)
 
-    # TF-IDF
     tfidf = TfidfVectorizer(stop_words='english')
     matrix = tfidf.fit_transform(data["combined_text"])
     query_vec = tfidf.transform([keywords])
     cosine_sim = cosine_similarity(query_vec, matrix).flatten()
 
-    # Get top indices
     top_indices = cosine_sim.argsort()[-5:][::-1]
     top_scores = cosine_sim[top_indices]
 
-    # Collect matching rows as DataFrame
     results = pd.DataFrame([data.iloc[idx] for idx, score in zip(top_indices, top_scores) if score > 0.01])
 
-    # Fallback random selection if no matches
     if results.empty:
         results = data.sample(min(5, len(data)))
 
@@ -125,8 +85,11 @@ if st.button("🔍 Recommend"):
         if not results.empty:
             st.success("✅ Top Recommendations for you!")
 
-            # Use predefined display column
-            display_col = display_columns.get(category, results.select_dtypes(include='object').columns[0])
+            # ---------- AUTOMATIC DISPLAY COLUMN ----------
+            # Pick the first object column that is not ID, Gender, or Price
+            exclude_cols = ["Gender", "ID", "Price"]
+            obj_cols = [c for c in results.select_dtypes(include='object').columns if c not in exclude_cols]
+            display_col = obj_cols[0] if obj_cols else results.columns[0]
 
             for i, row in results.iterrows():
                 value = row.get(display_col, "N/A")
@@ -134,6 +97,4 @@ if st.button("🔍 Recommend"):
         else:
             st.warning("😔 No results found. Try a different keyword!")
 
-# ---------- FOOTER ----------
 st.markdown('<div class="footer">Developed with ❤️ using Streamlit by Debritu Bose</div>', unsafe_allow_html=True)
-
