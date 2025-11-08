@@ -108,9 +108,6 @@ def get_recommendations(data, keywords, category):
     data["combined_text"] = data[text_cols].fillna("").astype(str).agg(" ".join, axis=1).str.lower()
     keywords = keywords.lower()
 
-    # Debug: show sample combined text
-    # st.write("Sample combined text:", data["combined_text"].head())
-
     tfidf = TfidfVectorizer(stop_words='english')
     matrix = tfidf.fit_transform(data["combined_text"])
     query_vec = tfidf.transform([keywords])
@@ -162,7 +159,7 @@ if st.button("🔍 Recommend"):
         if len(results) > 0:
             st.success("✅ Top Recommendations for you!")
             for i, row in enumerate(results,1):
-                info = " | ".join([f"{col}: {row[col]}" for col in display_cols if col in row])
+                info = " | ".join([f"{col}: {str(row[col])}" for col in display_cols if col in row and pd.notna(row[col])])
                 st.markdown(f"**{i}.** {info}")
         else:
             st.warning("😔 No results found. Try a different keyword!")
