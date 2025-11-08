@@ -108,8 +108,10 @@ def get_recommendations(data, keywords, category):
     for idx in top_indices:
         if cosine_sim[idx] > 0.01:
             results.append(data.iloc[idx])
-    if not results:
-        results = data.sample(min(5, len(data)))
+    if len(results) == 0:
+        results = data.sample(min(5, len(data))).to_dict('records')
+        # Convert dict back to Series for uniformity
+        results = [pd.Series(r) for r in results]
     return results
 
 # ---------- APP INTERFACE ----------
@@ -144,7 +146,7 @@ if st.button("🔍 Recommend"):
 
         results = get_recommendations(data, keywords, category)
 
-        if results:
+        if len(results) > 0:
             st.success("✅ Top Recommendations for you!")
             for i, row in enumerate(results,1):
                 info_parts = []
