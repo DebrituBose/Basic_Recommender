@@ -46,6 +46,7 @@ books_file = st.sidebar.file_uploader("Upload Books CSV/XLSX", type=["csv","xlsx
 
 @st.cache_data
 def load_data():
+    # Read all files
     food = read_file(food_file)
     clothes = read_file(clothes_file)
     products = read_file(products_file)
@@ -53,32 +54,24 @@ def load_data():
     songs = read_file(songs_file)
     books = read_file(books_file)
 
-    # ---------- CLEAN FOOD DATA ----------
-    if not food.empty:
-        food.columns = food.columns.str.strip().str.lower()
-        if 'name' in food.columns and 'restaurant' in food.columns:
-            food = food[food['name'].notna() & food['restaurant'].notna()]
-            for col in ['name','restaurant','category','description','price']:
-                if col in food.columns:
-                    food[col] = food[col].astype(str).str.strip().str.lower()
-        else:
-            st.error("Food CSV must have columns 'Name' and 'Restaurant' (any case)!")
-
-    # Clean other datasets to lowercase strings for TF-IDF
-    def clean_text(df, columns):
+    # ---------- CLEAN DATA ----------
+    def clean_df(df, required_cols=[]):
         if df.empty:
             return df
-        df.columns = df.columns.str.strip().str.lower()
-        for col in columns:
-            if col in df.columns:
-                df[col] = df[col].astype(str).str.strip().str.lower()
+        df.columns = df.columns.str.strip()
+        for col in required_cols:
+            if col not in df.columns:
+                df[col] = ""
+        for col in df.select_dtypes(include='object').columns:
+            df[col] = df[col].astype(str).str.strip()
         return df
 
-    clothes = clean_text(clothes, ['name','brand','category','description','price'])
-    products = clean_text(products, ['name','brand','category','description','price'])
-    movies = clean_text(movies, ['title','genres','overview'])
-    songs = clean_text(songs, ['track_name','artist_name','genre'])
-    books = clean_text(books, ['name','book-title','author','description'])
+    food = clean_df(food, ['Name','Restaurant','Category','Description','Price'])
+    clothes = clean_df(clothes, ['Name','Brand','Category','Description','Price'])
+    products = clean_df(products, ['Name','Brand','Category','Description','Price'])
+    movies = clean_df(movies, ['Title','Genres','Overview'])
+    songs = clean_df(songs, ['Track_Name','Artist_Name','Genre'])
+    books = clean_df(books, ['Name','Book-Title','Author','Description'])
 
     return food, clothes, products, movies, songs, books
 
@@ -86,24 +79,21 @@ food, clothes, products, movies, songs, books = load_data()
 
 # ---------- RECOMMENDER FUNCTION ----------
 def get_recommendations(data, keywords, category):
-    if data is None or data.empty or keywords.strip() == "":
+    if data.empty or not keywords.strip():
         return []
 
-    # Define columns for each category
     text_cols_dict = {
-        "Food": ['name','restaurant','category','description'],
-        "Clothes": ['name','brand','category','description'],
-        "Products": ['name','brand','category','description'],
-        "Movies": ['title','genres','overview'],
-        "Songs": ['track_name','artist_name','genre'],
-        "Books": ['name','book-title','author','description']
+        "Food": ['Name','Restaurant','Category','Description'],
+        "Clothes": ['Name','Brand','Category','Description'],
+        "Products": ['Name','Brand','Category','Description'],
+        "Movies": ['Title','Genres','Overview'],
+        "Songs": ['Track_Name','Artist_Name','Genre'],
+        "Books": ['Name','Book-Title','Author','Description']
     }
 
-    text_cols = text_cols_dict.get(category, [c for c in data.columns if data[c].dtype=='object'])
-
-    for col in text_cols:
-        if col not in data.columns:
-            data[col] = ""
+    text_cols = [c for c in text_cols_dict.get(category, []) if c in data.columns]
+    if not text_cols:
+        text_cols = [c for c in data.columns if data[c].dtype=='object']
 
     data["combined_text"] = data[text_cols].fillna("").astype(str).agg(" ".join, axis=1).str.lower()
     keywords = keywords.lower()
@@ -114,13 +104,11 @@ def get_recommendations(data, keywords, category):
     cosine_sim = cosine_similarity(query_vec, matrix).flatten()
 
     top_indices = cosine_sim.argsort()[-5:][::-1]
-    top_scores = cosine_sim[top_indices]
-
     results = []
-    for idx, score in zip(top_indices, top_scores):
-        if score > 0.01:
+    for idx in top_indices:
+        if cosine_sim[idx] > 0.01:
             results.append(data.iloc[idx])
-    if len(results) == 0:
+    if not results:
         results = data.sample(min(5, len(data)))
     return results
 
@@ -133,15 +121,6 @@ keywords = st.text_input("Enter keywords (e.g., biryani, jeans, laptop, action, 
 
 if st.button("🔍 Recommend"):
     with st.spinner("Finding recommendations..."):
-        display_cols_dict = {
-            "Food": ['name','restaurant','category','price','description'],
-            "Clothes": ['name','brand','category','price','description'],
-            "Products": ['name','brand','category','price','description'],
-            "Movies": ['title','genres','overview'],
-            "Songs": ['track_name','artist_name','genre'],
-            "Books": ['name','book-title','author','description']
-        }
-
         data_dict = {
             "Food": food,
             "Clothes": clothes,
@@ -151,20 +130,29 @@ if st.button("🔍 Recommend"):
             "Books": books
         }
 
+        display_cols_dict = {
+            "Food": ['Name','Restaurant','Category','Price','Description'],
+            "Clothes": ['Name','Brand','Category','Price','Description'],
+            "Products": ['Name','Brand','Category','Price','Description'],
+            "Movies": ['Title','Genres','Overview'],
+            "Songs": ['Track_Name','Artist_Name','Genre'],
+            "Books": ['Name','Book-Title','Author','Description']
+        }
+
         data = data_dict.get(category, pd.DataFrame())
         display_cols = display_cols_dict.get(category, [])
 
         results = get_recommendations(data, keywords, category)
 
-        if len(results) > 0:
+        if results:
             st.success("✅ Top Recommendations for you!")
             for i, row in enumerate(results,1):
-                # --- SAFE DISPLAY ---
                 info_parts = []
                 for col in display_cols:
-                    val = row.get(col, None)  # safe get
-                    if val is not None and pd.notna(val):
-                        info_parts.append(f"{col}: {val}")
+                    if col in row.index:
+                        val = row[col]
+                        if pd.notna(val) and str(val).strip():
+                            info_parts.append(f"{col}: {val}")
                 info = " | ".join(info_parts)
                 st.markdown(f"**{i}.** {info}")
         else:
