@@ -4,7 +4,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
 # ---------- PAGE CONFIG ----------
-st.set_page_config(page_title="Universal Recommender System", layout="centered")
+st.set_page_config(page_title="Basic Recommender System", layout="centered")
 
 # ---------- STYLING ----------
 st.markdown("""
@@ -16,7 +16,7 @@ body { background-color: #f0f4f8; color: #333333; }
 </style>
 """, unsafe_allow_html=True)
 
-st.markdown('<div class="title">✨ Universal Recommender System ✨</div>', unsafe_allow_html=True)
+st.markdown('<div class="title">✨ Basic Recommender System ✨</div>', unsafe_allow_html=True)
 st.write("Search across **Food**, **Clothes**, **Products**, **Movies**, **Songs**, and **Books**!")
 
 # ---------- FILE UPLOAD ----------
@@ -171,4 +171,5 @@ if st.button("🔍 Recommend"):
         else:
             st.warning("😔 No results found. Try a different keyword!")
 
-st.markdown('<div class="footer">Developed with ❤️ using Streamlit</div>', unsafe_allow_html=True)
+st.markdown('<div class="footer">Developed with ❤️ using Streamlit by Debritu Bose</div>', unsafe_allow_html=True)
+
