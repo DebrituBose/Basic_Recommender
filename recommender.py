@@ -74,7 +74,7 @@ def load_data():
     products = clean_df(products, ['name','brand','category','description','price'])
     movies = clean_df(movies, ['title','genres','overview'])
     songs = clean_df(songs, ['track_name','artist_name','genre'])
-    books = clean_df(books, ['name','book_title','author','description'])
+    books = clean_df(books, ['book_title','author','description'])  # exclude serial number
 
     return food, clothes, products, movies, songs, books
 
@@ -85,22 +85,25 @@ def get_recommendations(data, keywords, category):
     if data.empty or not keywords.strip():
         return []
 
+    # Define text columns per category
     text_cols_dict = {
         "Food": ['name','restaurant','category','description'],
         "Clothes": ['name','brand','category','description'],
         "Products": ['name','brand','category','description'],
         "Movies": ['title','genres','overview'],
         "Songs": ['track_name','artist_name','genre'],
-        "Books": ['name','book_title','author','description']
+        "Books": ['book_title','author','description']  # <-- exclude 'name' column
     }
 
     text_cols = [c for c in text_cols_dict.get(category, []) if c in data.columns]
-    if not text_cols:
-        text_cols = [c for c in data.columns if data[c].dtype=='object']
 
-    # Combine text safely
-    data["combined_text"] = data[text_cols].fillna("").astype(str).agg(" ".join, axis=1).str.lower()
-    data["combined_text"] = data["combined_text"].replace(r'^\s*$', 'empty', regex=True)  # placeholder
+    # Ensure all columns are string
+    for col in text_cols:
+        data[col] = data[col].fillna("").astype(str)
+
+    # Combine text
+    data["combined_text"] = data[text_cols].agg(" ".join, axis=1).str.lower()
+    data["combined_text"] = data["combined_text"].replace(r'^\s*$', 'empty', regex=True)
 
     keywords = keywords.lower()
 
@@ -120,7 +123,6 @@ def get_recommendations(data, keywords, category):
             results = [pd.Series(r) for r in results]
         return results
     except ValueError:
-        # fallback if TF-IDF fails
         results = data.sample(min(5, len(data))).to_dict('records')
         return [pd.Series(r) for r in results]
 
@@ -148,7 +150,7 @@ if st.button("🔍 Recommend"):
             "Products": ['name','brand','category','price','description'],
             "Movies": ['title','genres','overview'],
             "Songs": ['track_name','artist_name','genre'],
-            "Books": ['name','book_title','author','description']
+            "Books": ['book_title','author','description']
         }
 
         data = data_dict.get(category, pd.DataFrame())
