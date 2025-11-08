@@ -6,6 +6,9 @@ from sklearn.metrics.pairwise import cosine_similarity
 # ---------- PAGE CONFIG ----------
 st.set_page_config(page_title="Universal Recommender System", layout="centered")
 
+# ---------- CLEAR OLD CACHE ----------
+st.cache_data.clear()
+
 # ---------- STYLING ----------
 st.markdown("""
 <style>
@@ -57,14 +60,11 @@ def load_data():
     def clean_df(df, required_cols=[]):
         if df.empty:
             return df
-        # Normalize column names: lowercase, remove spaces, replace '-' with '_'
         df.columns = [c.strip().lower().replace(" ","_").replace("-","_") for c in df.columns]
-        # Add missing columns
         for col in required_cols:
             col_lower = col.strip().lower().replace(" ","_").replace("-","_")
             if col_lower not in df.columns:
                 df[col_lower] = ""
-        # Strip text
         for col in df.select_dtypes(include='object').columns:
             df[col] = df[col].astype(str).str.strip()
         return df
@@ -74,37 +74,36 @@ def load_data():
     products = clean_df(products, ['name','brand','category','description','price'])
     movies = clean_df(movies, ['title','genres','overview'])
     songs = clean_df(songs, ['track_name','artist_name','genre'])
-    books = clean_df(books, ['book_title','author','description'])  # exclude serial number
+    books = clean_df(books, ['book_title','author','description'])
 
     return food, clothes, products, movies, songs, books
 
 food, clothes, products, movies, songs, books = load_data()
+
+# ---------- WARN IF FILES EMPTY ----------
+if any(df.empty for df in [food, clothes, products, movies, songs, books]):
+    st.warning("⚠️ One or more datasets are empty or not uploaded. Please re-upload all CSV/XLSX files in the sidebar before using the recommender.")
 
 # ---------- RECOMMENDER FUNCTION ----------
 def get_recommendations(data, keywords, category):
     if data.empty or not keywords.strip():
         return []
 
-    # Define text columns per category
     text_cols_dict = {
         "Food": ['name','restaurant','category','description'],
         "Clothes": ['name','brand','category','description'],
         "Products": ['name','brand','category','description'],
         "Movies": ['title','genres','overview'],
         "Songs": ['track_name','artist_name','genre'],
-        "Books": ['book_title','author','description']  # <-- exclude 'name' column
+        "Books": ['book_title','author','description']
     }
 
     text_cols = [c for c in text_cols_dict.get(category, []) if c in data.columns]
-
-    # Ensure all columns are string
     for col in text_cols:
         data[col] = data[col].fillna("").astype(str)
 
-    # Combine text
     data["combined_text"] = data[text_cols].agg(" ".join, axis=1).str.lower()
     data["combined_text"] = data["combined_text"].replace(r'^\s*$', 'empty', regex=True)
-
     keywords = keywords.lower()
 
     try:
@@ -112,19 +111,14 @@ def get_recommendations(data, keywords, category):
         matrix = tfidf.fit_transform(data["combined_text"])
         query_vec = tfidf.transform([keywords])
         cosine_sim = cosine_similarity(query_vec, matrix).flatten()
-
         top_indices = cosine_sim.argsort()[-5:][::-1]
-        results = []
-        for idx in top_indices:
-            if cosine_sim[idx] > 0.01:
-                results.append(data.iloc[idx])
-        if len(results) == 0:
-            results = data.sample(min(5, len(data))).to_dict('records')
-            results = [pd.Series(r) for r in results]
+        results = [data.iloc[idx] for idx in top_indices if cosine_sim[idx] > 0.01]
+        if not results:
+            results = [pd.Series(r) for r in data.sample(min(5, len(data))).to_dict('records')]
         return results
     except ValueError:
-        results = data.sample(min(5, len(data))).to_dict('records')
-        return [pd.Series(r) for r in results]
+        results = [pd.Series(r) for r in data.sample(min(5, len(data))).to_dict('records')]
+        return results
 
 # ---------- APP INTERFACE ----------
 category = st.radio(
@@ -155,7 +149,6 @@ if st.button("🔍 Recommend"):
 
         data = data_dict.get(category, pd.DataFrame())
         display_cols = display_cols_dict.get(category, [])
-
         results = get_recommendations(data, keywords, category)
 
         if results:
