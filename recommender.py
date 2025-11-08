@@ -57,11 +57,11 @@ def load_data():
     def clean_df(df, required_cols=[]):
         if df.empty:
             return df
-        # Normalize column names
-        df.columns = [c.strip().replace(" ","_").lower() for c in df.columns]
+        # Normalize column names: lowercase, remove spaces, replace '-' with '_'
+        df.columns = [c.strip().lower().replace(" ","_").replace("-","_") for c in df.columns]
         # Add missing columns
         for col in required_cols:
-            col_lower = col.strip().replace(" ","_").lower()
+            col_lower = col.strip().lower().replace(" ","_").replace("-","_")
             if col_lower not in df.columns:
                 df[col_lower] = ""
         # Strip text
@@ -69,12 +69,12 @@ def load_data():
             df[col] = df[col].astype(str).str.strip()
         return df
 
-    food = clean_df(food, ['Name','Restaurant','Category','Description','Price'])
-    clothes = clean_df(clothes, ['Name','Brand','Category','Description','Price'])
-    products = clean_df(products, ['Name','Brand','Category','Description','Price'])
-    movies = clean_df(movies, ['Title','Genres','Overview'])
-    songs = clean_df(songs, ['Track_Name','Artist_Name','Genre'])
-    books = clean_df(books, ['Name','Book_Title','Author','Description'])
+    food = clean_df(food, ['name','restaurant','category','description','price'])
+    clothes = clean_df(clothes, ['name','brand','category','description','price'])
+    products = clean_df(products, ['name','brand','category','description','price'])
+    movies = clean_df(movies, ['title','genres','overview'])
+    songs = clean_df(songs, ['track_name','artist_name','genre'])
+    books = clean_df(books, ['name','book_title','author','description'])
 
     return food, clothes, products, movies, songs, books
 
@@ -156,15 +156,14 @@ if st.button("🔍 Recommend"):
 
         results = get_recommendations(data, keywords, category)
 
-        if len(results) > 0:
+        if results:
             st.success("✅ Top Recommendations for you!")
             for i, row in enumerate(results,1):
                 info_parts = []
                 for col in display_cols:
-                    if col in row.index:
-                        val = row[col]
-                        if pd.notna(val) and str(val).strip():
-                            info_parts.append(f"{col.replace('_',' ').title()}: {val}")
+                    val = row.get(col, "")
+                    if pd.notna(val) and str(val).strip():
+                        info_parts.append(f"{col.replace('_',' ').title()}: {val}")
                 info = " | ".join(info_parts)
                 st.markdown(f"**{i}.** {info}")
         else:
