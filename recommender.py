@@ -3,10 +3,9 @@ import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
-# ---------- PAGE CONFIG ----------
 st.set_page_config(page_title="Basic Recommender System", layout="centered")
 
-# ---------- STYLING ----------
+
 st.markdown("""
 <style>
 body { background-color: #f0f4f8; color: #333333; }
@@ -19,7 +18,7 @@ body { background-color: #f0f4f8; color: #333333; }
 st.markdown('<div class="title">✨ Basic Recommender System ✨</div>', unsafe_allow_html=True)
 st.write("Search across **Food**, **Clothes**, **Products**, **Movies**, **Songs**, and **Books**!")
 
-# ---------- FILE UPLOAD ----------
+
 def read_file(uploaded_file):
     if uploaded_file is None:
         return pd.DataFrame()
@@ -53,7 +52,7 @@ def load_data():
     songs = read_file(songs_file)
     books = read_file(books_file)
 
-    # ---------- CLEAN DATA ----------
+   
     def clean_df(df, required_cols=[]):
         if df.empty:
             return df
@@ -80,12 +79,12 @@ def load_data():
 
 food, clothes, products, movies, songs, books = load_data()
 
-# ---------- RECOMMENDER FUNCTION ----------
+
 def get_recommendations(data, keywords, category):
     if data.empty or not keywords.strip():
         return []
 
-    # Define text columns per category
+    
     text_cols_dict = {
         "Food": ['name','restaurant','category','description'],
         "Clothes": ['name','brand','category','description'],
@@ -97,11 +96,11 @@ def get_recommendations(data, keywords, category):
 
     text_cols = [c for c in text_cols_dict.get(category, []) if c in data.columns]
 
-    # Ensure all columns are string
+    
     for col in text_cols:
         data[col] = data[col].fillna("").astype(str)
 
-    # Combine text
+   
     data["combined_text"] = data[text_cols].agg(" ".join, axis=1).str.lower()
     data["combined_text"] = data["combined_text"].replace(r'^\s*$', 'empty', regex=True)
 
@@ -126,7 +125,7 @@ def get_recommendations(data, keywords, category):
         results = data.sample(min(5, len(data))).to_dict('records')
         return [pd.Series(r) for r in results]
 
-# ---------- APP INTERFACE ----------
+
 category = st.radio(
     "Select Category:",
     ["Food","Clothes","Products","Movies","Songs","Books"]
@@ -172,4 +171,5 @@ if st.button("🔍 Recommend"):
             st.warning("😔 No results found. Try a different keyword!")
 
 st.markdown('<div class="footer">Developed with ❤️ using Streamlit by Debritu Bose</div>', unsafe_allow_html=True)
+
 
