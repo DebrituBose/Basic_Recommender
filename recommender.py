@@ -46,7 +46,6 @@ books_file = st.sidebar.file_uploader("Upload Books CSV/XLSX", type=["csv","xlsx
 
 @st.cache_data
 def load_data():
-    # Read all files
     food = read_file(food_file)
     clothes = read_file(clothes_file)
     products = read_file(products_file)
@@ -95,24 +94,31 @@ def get_recommendations(data, keywords, category):
     if not text_cols:
         text_cols = [c for c in data.columns if data[c].dtype=='object']
 
+    # Combine text safely
     data["combined_text"] = data[text_cols].fillna("").astype(str).agg(" ".join, axis=1).str.lower()
+    data["combined_text"] = data["combined_text"].replace(r'^\s*$', 'empty', regex=True)  # placeholder
+
     keywords = keywords.lower()
 
-    tfidf = TfidfVectorizer(stop_words='english')
-    matrix = tfidf.fit_transform(data["combined_text"])
-    query_vec = tfidf.transform([keywords])
-    cosine_sim = cosine_similarity(query_vec, matrix).flatten()
+    try:
+        tfidf = TfidfVectorizer(stop_words='english')
+        matrix = tfidf.fit_transform(data["combined_text"])
+        query_vec = tfidf.transform([keywords])
+        cosine_sim = cosine_similarity(query_vec, matrix).flatten()
 
-    top_indices = cosine_sim.argsort()[-5:][::-1]
-    results = []
-    for idx in top_indices:
-        if cosine_sim[idx] > 0.01:
-            results.append(data.iloc[idx])
-    if len(results) == 0:
+        top_indices = cosine_sim.argsort()[-5:][::-1]
+        results = []
+        for idx in top_indices:
+            if cosine_sim[idx] > 0.01:
+                results.append(data.iloc[idx])
+        if len(results) == 0:
+            results = data.sample(min(5, len(data))).to_dict('records')
+            results = [pd.Series(r) for r in results]
+        return results
+    except ValueError:
+        # fallback if TF-IDF fails
         results = data.sample(min(5, len(data))).to_dict('records')
-        # Convert dict back to Series for uniformity
-        results = [pd.Series(r) for r in results]
-    return results
+        return [pd.Series(r) for r in results]
 
 # ---------- APP INTERFACE ----------
 category = st.radio(
