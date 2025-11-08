@@ -159,7 +159,13 @@ if st.button("🔍 Recommend"):
         if len(results) > 0:
             st.success("✅ Top Recommendations for you!")
             for i, row in enumerate(results,1):
-                info = " | ".join([f"{col}: {str(row[col])}" for col in display_cols if col in row and pd.notna(row[col])])
+                # --- SAFE DISPLAY ---
+                info_parts = []
+                for col in display_cols:
+                    val = row.get(col, None)  # safe get
+                    if val is not None and pd.notna(val):
+                        info_parts.append(f"{col}: {val}")
+                info = " | ".join(info_parts)
                 st.markdown(f"**{i}.** {info}")
         else:
             st.warning("😔 No results found. Try a different keyword!")
