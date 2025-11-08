@@ -57,10 +57,14 @@ def load_data():
     def clean_df(df, required_cols=[]):
         if df.empty:
             return df
-        df.columns = df.columns.str.strip()
+        # Normalize column names
+        df.columns = [c.strip().replace(" ","_").lower() for c in df.columns]
+        # Add missing columns
         for col in required_cols:
-            if col not in df.columns:
-                df[col] = ""
+            col_lower = col.strip().replace(" ","_").lower()
+            if col_lower not in df.columns:
+                df[col_lower] = ""
+        # Strip text
         for col in df.select_dtypes(include='object').columns:
             df[col] = df[col].astype(str).str.strip()
         return df
@@ -70,7 +74,7 @@ def load_data():
     products = clean_df(products, ['Name','Brand','Category','Description','Price'])
     movies = clean_df(movies, ['Title','Genres','Overview'])
     songs = clean_df(songs, ['Track_Name','Artist_Name','Genre'])
-    books = clean_df(books, ['Name','Book-Title','Author','Description'])
+    books = clean_df(books, ['Name','Book_Title','Author','Description'])
 
     return food, clothes, products, movies, songs, books
 
@@ -82,12 +86,12 @@ def get_recommendations(data, keywords, category):
         return []
 
     text_cols_dict = {
-        "Food": ['Name','Restaurant','Category','Description'],
-        "Clothes": ['Name','Brand','Category','Description'],
-        "Products": ['Name','Brand','Category','Description'],
-        "Movies": ['Title','Genres','Overview'],
-        "Songs": ['Track_Name','Artist_Name','Genre'],
-        "Books": ['Name','Book-Title','Author','Description']
+        "Food": ['name','restaurant','category','description'],
+        "Clothes": ['name','brand','category','description'],
+        "Products": ['name','brand','category','description'],
+        "Movies": ['title','genres','overview'],
+        "Songs": ['track_name','artist_name','genre'],
+        "Books": ['name','book_title','author','description']
     }
 
     text_cols = [c for c in text_cols_dict.get(category, []) if c in data.columns]
@@ -139,12 +143,12 @@ if st.button("🔍 Recommend"):
         }
 
         display_cols_dict = {
-            "Food": ['Name','Restaurant','Category','Price','Description'],
-            "Clothes": ['Name','Brand','Category','Price','Description'],
-            "Products": ['Name','Brand','Category','Price','Description'],
-            "Movies": ['Title','Genres','Overview'],
-            "Songs": ['Track_Name','Artist_Name','Genre'],
-            "Books": ['Name','Book-Title','Author','Description']
+            "Food": ['name','restaurant','category','price','description'],
+            "Clothes": ['name','brand','category','price','description'],
+            "Products": ['name','brand','category','price','description'],
+            "Movies": ['title','genres','overview'],
+            "Songs": ['track_name','artist_name','genre'],
+            "Books": ['name','book_title','author','description']
         }
 
         data = data_dict.get(category, pd.DataFrame())
@@ -160,7 +164,7 @@ if st.button("🔍 Recommend"):
                     if col in row.index:
                         val = row[col]
                         if pd.notna(val) and str(val).strip():
-                            info_parts.append(f"{col}: {val}")
+                            info_parts.append(f"{col.replace('_',' ').title()}: {val}")
                 info = " | ".join(info_parts)
                 st.markdown(f"**{i}.** {info}")
         else:
