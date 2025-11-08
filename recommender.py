@@ -3,13 +3,13 @@ import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
-# ---------- PAGE CONFIG ----------
-st.set_page_config(page_title="Universal Recommender System", layout="centered")
 
-# ---------- CLEAR OLD CACHE ----------
+st.set_page_config(page_title="Basic Recommender System", layout="centered")
+
+
 st.cache_data.clear()
 
-# ---------- STYLING ----------
+
 st.markdown("""
 <style>
 body { background-color: #f0f4f8; color: #333333; }
@@ -19,10 +19,10 @@ body { background-color: #f0f4f8; color: #333333; }
 </style>
 """, unsafe_allow_html=True)
 
-st.markdown('<div class="title">✨ Universal Recommender System ✨</div>', unsafe_allow_html=True)
+st.markdown('<div class="title">✨ Basic Recommender System ✨</div>', unsafe_allow_html=True)
 st.write("Search across **Food**, **Clothes**, **Products**, **Movies**, **Songs**, and **Books**!")
 
-# ---------- FILE UPLOAD ----------
+
 def read_file(uploaded_file):
     if uploaded_file is None:
         return pd.DataFrame()
@@ -56,7 +56,7 @@ def load_data():
     songs = read_file(songs_file)
     books = read_file(books_file)
 
-    # ---------- CLEAN DATA ----------
+    
     def clean_df(df, required_cols=[]):
         if df.empty:
             return df
@@ -80,11 +80,10 @@ def load_data():
 
 food, clothes, products, movies, songs, books = load_data()
 
-# ---------- WARN IF FILES EMPTY ----------
 if any(df.empty for df in [food, clothes, products, movies, songs, books]):
     st.warning("⚠️ One or more datasets are empty or not uploaded. Please re-upload all CSV/XLSX files in the sidebar before using the recommender.")
 
-# ---------- RECOMMENDER FUNCTION ----------
+
 def get_recommendations(data, keywords, category):
     if data.empty or not keywords.strip():
         return []
@@ -120,7 +119,7 @@ def get_recommendations(data, keywords, category):
         results = [pd.Series(r) for r in data.sample(min(5, len(data))).to_dict('records')]
         return results
 
-# ---------- APP INTERFACE ----------
+
 category = st.radio(
     "Select Category:",
     ["Food","Clothes","Products","Movies","Songs","Books"]
@@ -164,4 +163,5 @@ if st.button("🔍 Recommend"):
         else:
             st.warning("😔 No results found. Try a different keyword!")
 
-st.markdown('<div class="footer">Developed with ❤️ using Streamlit</div>', unsafe_allow_html=True)
+st.markdown('<div class="footer">Developed with ❤️ using Streamlit by Debritu Bose</div>', unsafe_allow_html=True)
+
